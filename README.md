@@ -96,6 +96,8 @@ Only allowlisted admins can manage portfolio content and view the Admin chat inb
 
 See [`supabase/SETUP.md`](./supabase/SETUP.md) for additional migrations and configuration, including social links, project imports, resume management, skills/tools, and contact form notifications.
 
+For safe visitor demo-account setup and credential sharing, see [`DEMO-VISITOR-ACCESS.md`](./DEMO-VISITOR-ACCESS.md). No shared demo credentials are stored in this repository.
+
 ## Netlify contact form
 
 Enable automatic form detection in Netlify and redeploy so the `portfolio-contact` form is registered. Configure a form notification to deliver messages to the portfolio owner's chosen inbox.

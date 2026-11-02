@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="chat.css" />
+    <link rel="stylesheet" href="chat.css?v=4" />
   </head>
   <body data-page="chat" data-theme="demon">
     <div class="page-shell">
@@ -59,17 +59,16 @@
       </div>
 
       <main>
-        <section class="section page-section">
+        <section class="chat-page">
           <div class="container chat-container">
-            <div class="section-head centered">
-              <span class="eyebrow"><i class="fas fa-comments" aria-hidden="true"></i> Private chat</span>
-              <h1>Let’s talk</h1>
-              <p>Sign in or create an account to start a private conversation.</p>
-            </div>
-
-            <section id="chat-auth" class="chat-card" aria-labelledby="chat-auth-heading">
-              <h2 id="chat-auth-heading">Welcome</h2>
-              <p class="chat-help">Your account is only for chat. It does not grant access to the admin dashboard.</p>
+            <section id="chat-auth" class="chat-auth-card" aria-labelledby="chat-auth-heading">
+              <a class="chat-auth-brand" href="index.html">
+                <span class="brand-mark"><i class="fab fa-java" aria-hidden="true"></i></span>
+                <span><strong>Mephisto.net</strong><small>Private chat</small></span>
+              </a>
+              <span class="eyebrow"><i class="fas fa-lock" aria-hidden="true"></i> Private conversations</span>
+              <h1 id="chat-auth-heading">Welcome</h1>
+              <p class="chat-help">Sign in or create an account to start chatting. Chat accounts cannot access Admin.</p>
               <form id="chat-login-form" class="chat-form">
                 <label for="chat-login-email">Email</label>
                 <input id="chat-login-email" name="email" type="email" autocomplete="email" maxlength="254" required />
@@ -93,28 +92,58 @@
             </section>
 
             <section id="chat-session" class="chat-card chat-session" aria-labelledby="chat-session-heading" hidden>
-              <div class="chat-session-heading">
-                <div>
-                  <span class="eyebrow">Signed in as <span id="chat-user-email"></span></span>
-                  <h2>Your conversations</h2>
+              <div class="chat-app-header">
+                <a class="chat-app-brand" href="index.html" aria-label="Back to portfolio">
+                  <span class="brand-mark small"><i class="fab fa-java" aria-hidden="true"></i></span>
+                  <span>Mephisto<span class="chat-brand-dot">.</span></span>
+                </a>
+                <div class="chat-account">
+                  <span class="chat-account-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
+                  <span id="chat-user-email"></span>
                 </div>
-                <button id="chat-signout" class="btn btn-secondary" type="button">Sign out</button>
+                <button id="chat-signout" class="chat-icon-button" type="button" aria-label="Sign out" title="Sign out"><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i></button>
               </div>
               <div class="chat-room-layout">
                 <aside class="chat-room-sidebar" aria-label="Conversations and group chats">
-                  <h3>Private chat</h3>
-                  <button id="chat-direct-button" class="chat-room-button active" type="button">Chat with Manish</button>
-                  <h3>Group chats</h3>
+                  <div class="chat-sidebar-heading">
+                    <div><span class="eyebrow">Your inbox</span><h2>Chats</h2></div>
+                    <span class="chat-sidebar-icon"><i class="fas fa-pen-to-square" aria-hidden="true"></i></span>
+                  </div>
+                  <label class="chat-search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <span class="sr-only">Search chats</span>
+                    <input id="chat-search-input" type="search" placeholder="Search conversations" autocomplete="off" />
+                  </label>
+                  <div class="chat-room-section-label">DIRECT MESSAGE</div>
+                  <button id="chat-direct-button" class="chat-room-button active" type="button">
+                    <span class="chat-room-avatar chat-direct-avatar"><i class="fas fa-user" aria-hidden="true"></i></span>
+                    <span class="chat-room-copy"><strong>Manish</strong><small>Private conversation</small></span>
+                    <i class="fas fa-chevron-right chat-room-chevron" aria-hidden="true"></i>
+                  </button>
+                  <div class="chat-group-heading">
+                    <span class="chat-room-section-label">GROUPS</span>
+                    <span class="chat-group-count" id="chat-group-count">0</span>
+                  </div>
                   <div id="chat-group-list" class="chat-group-list"></div>
+                  <details class="chat-join-group-details">
+                    <summary><i class="fas fa-plus" aria-hidden="true"></i> Join a group</summary>
                   <form id="chat-join-group-form" class="chat-join-group-form">
                     <label for="chat-group-id">Join with chat ID</label>
                     <input id="chat-group-id" name="group_id" type="text" maxlength="36" placeholder="Paste group chat ID" required />
                     <button class="btn btn-secondary" type="submit">Join group</button>
                   </form>
-                  <p class="chat-help">Ask the admin for one of the five group chat IDs.</p>
+                  </details>
+                  <p class="chat-sidebar-footnote"><i class="fas fa-shield-halved" aria-hidden="true"></i> Messages are private to each conversation.</p>
                 </aside>
-                <div class="chat-thread">
-                  <h3 id="chat-thread-heading">Chat with Manish</h3>
+                <div class="chat-thread" aria-label="Chat conversation">
+                  <div class="chat-thread-header">
+                    <span id="chat-thread-avatar" class="chat-room-avatar chat-direct-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
+                    <div class="chat-thread-title">
+                      <h2 id="chat-thread-heading">Manish</h2>
+                      <span id="chat-presence" class="chat-presence"><span class="chat-presence-dot"></span> Chat privately</span>
+                    </div>
+                    <span class="chat-thread-secure"><i class="fas fa-lock" aria-hidden="true"></i><span>Private</span></span>
+                  </div>
                   <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages"></div>
                   <form id="chat-message-form" class="chat-message-form">
                     <label class="sr-only" for="chat-message">Your message</label>
@@ -123,7 +152,8 @@
                       <label class="chat-attachment-button" for="chat-attachment"><i class="fas fa-paperclip" aria-hidden="true"></i> Attach file</label>
                       <input id="chat-attachment" name="attachment" type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
                       <span id="chat-attachment-name" class="chat-attachment-name"></span>
-                      <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane" aria-hidden="true"></i> Send</button>
+                      <span class="chat-composer-hint">Enter to send · Shift+Enter for a new line</span>
+                      <button class="chat-send-button" type="submit" aria-label="Send message" title="Send message"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
                     </div>
                     <p class="chat-help">Photos and common documents up to 10 MB.</p>
                   </form>
@@ -149,6 +179,6 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
-    <script src="chat.js?v=3"></script>
+    <script src="chat.js?v=4"></script>
   </body>
 </html>

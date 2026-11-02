@@ -11,6 +11,12 @@
   const attachmentInput = document.getElementById("chat-attachment");
   const attachmentName = document.getElementById("chat-attachment-name");
   const groupList = document.getElementById("chat-group-list");
+  const searchInput = document.getElementById("chat-search-input");
+  const directButton = document.getElementById("chat-direct-button");
+  const groupCount = document.getElementById("chat-group-count");
+  const threadHeading = document.getElementById("chat-thread-heading");
+  const threadAvatar = document.getElementById("chat-thread-avatar");
+  const chatPresence = document.getElementById("chat-presence");
   const switchButton = document.getElementById("chat-auth-switch");
   const switchText = document.getElementById("chat-auth-switch-text");
   const resendConfirmationButton = document.getElementById("chat-resend-confirmation");
@@ -43,6 +49,25 @@
   function setStatus(element, message, isError = false) {
     element.textContent = message;
     element.dataset.error = String(isError);
+  }
+
+  function setThreadHeader(name, isGroup = false) {
+    threadHeading.textContent = name;
+    chatPresence.lastChild.textContent = isGroup ? " Group conversation" : " Chat privately";
+    threadAvatar.classList.toggle("chat-group-avatar", isGroup);
+    threadAvatar.classList.toggle("chat-direct-avatar", !isGroup);
+    const icon = document.createElement("i");
+    icon.className = `fas ${isGroup ? "fa-users" : "fa-user"}`;
+    icon.setAttribute("aria-hidden", "true");
+    threadAvatar.replaceChildren(icon);
+  }
+
+  function filterConversations() {
+    const query = searchInput.value.trim().toLocaleLowerCase();
+    directButton.hidden = !("manish private conversation".includes(query));
+    groupList.querySelectorAll(".chat-room-button").forEach((button) => {
+      button.hidden = !button.dataset.searchText.includes(query);
+    });
   }
 
   function isEmailRateLimited(error) {
@@ -127,11 +152,13 @@
 
   function renderGroupList() {
     groupList.replaceChildren();
+    groupCount.textContent = String(joinedGroups.length);
     if (!joinedGroups.length) {
       const empty = document.createElement("p");
       empty.className = "chat-help";
       empty.textContent = "No group chats joined yet.";
       groupList.append(empty);
+      filterConversations();
       return;
     }
 
@@ -139,10 +166,28 @@
       const button = document.createElement("button");
       button.className = `chat-room-button${activeChatType === "group" && activeGroup?.id === group.id ? " active" : ""}`;
       button.type = "button";
-      button.textContent = group.name;
+      button.dataset.searchText = `${group.name} group conversation`.toLocaleLowerCase();
+      const avatar = document.createElement("span");
+      avatar.className = "chat-room-avatar chat-group-avatar";
+      avatar.setAttribute("aria-hidden", "true");
+      const icon = document.createElement("i");
+      icon.className = "fas fa-users";
+      avatar.append(icon);
+      const copy = document.createElement("span");
+      copy.className = "chat-room-copy";
+      const name = document.createElement("strong");
+      name.textContent = group.name;
+      const description = document.createElement("small");
+      description.textContent = "Group conversation";
+      copy.append(name, description);
+      const chevron = document.createElement("i");
+      chevron.className = "fas fa-chevron-right chat-room-chevron";
+      chevron.setAttribute("aria-hidden", "true");
+      button.append(avatar, copy, chevron);
       button.addEventListener("click", () => selectGroup(group));
       groupList.append(button);
     });
+    filterConversations();
   }
 
   async function loadJoinedGroups() {
@@ -164,8 +209,8 @@
       activeGroup = null;
       activeChatType = "direct";
       latestMessageId = "";
-      document.getElementById("chat-thread-heading").textContent = "Chat with Manish";
-      document.getElementById("chat-direct-button").classList.add("active");
+      setThreadHeader("Manish");
+      directButton.classList.add("active");
       await loadMessages();
     }
     renderGroupList();
@@ -175,8 +220,8 @@
     activeChatType = "group";
     activeGroup = group;
     latestMessageId = "";
-    document.getElementById("chat-thread-heading").textContent = group.name;
-    document.getElementById("chat-direct-button").classList.remove("active");
+    setThreadHeader(group.name, true);
+    directButton.classList.remove("active");
     renderGroupList();
     await loadMessages();
   }
@@ -185,8 +230,8 @@
     activeChatType = "direct";
     activeGroup = null;
     latestMessageId = "";
-    document.getElementById("chat-thread-heading").textContent = "Chat with Manish";
-    document.getElementById("chat-direct-button").classList.add("active");
+    setThreadHeader("Manish");
+    directButton.classList.add("active");
     renderGroupList();
     loadMessages();
   }
@@ -313,8 +358,8 @@
     conversationId = await getConversation(user);
     activeChatType = "direct";
     activeGroup = null;
-    document.getElementById("chat-direct-button").classList.add("active");
-    document.getElementById("chat-thread-heading").textContent = "Chat with Manish";
+    directButton.classList.add("active");
+    setThreadHeader("Manish");
     setStatus(sessionStatus, "Loading your conversations…");
     await loadJoinedGroups();
     await loadMessages();
@@ -458,6 +503,14 @@
   });
 
   document.getElementById("chat-direct-button").addEventListener("click", selectDirectChat);
+  searchInput.addEventListener("input", filterConversations);
+
+  document.getElementById("chat-message").addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      messageForm.requestSubmit();
+    }
+  });
 
   document.getElementById("chat-join-group-form").addEventListener("submit", async (event) => {
     event.preventDefault();
