@@ -1,6 +1,32 @@
 alter table public.chat_messages
   add column if not exists is_bot boolean not null default false;
 
+update public.chat_messages as messages
+set is_bot = true,
+    sender_id = coalesce(
+      (
+        select admins.user_id
+        from public.portfolio_admins as admins
+        join auth.users as admin_users on admin_users.id = admins.user_id
+        where admin_users.email_confirmed_at is not null
+          and lower(admins.email) = lower(admin_users.email)
+        limit 1
+      ),
+      messages.sender_id
+    )
+from public.chat_conversations as conversations
+where conversations.id = messages.conversation_id
+  and messages.sender_id = conversations.visitor_id
+  and messages.body in (
+    'Hi! Welcome to Mephisto chat. I am the automated assistant. Ask me about projects, skills, or how to get in touch with Manish.',
+    'Hello! I can help with information about Manish''s projects, skills, and contact details. What would you like to know?',
+    'You can explore Manish''s work on the Projects page. Tell me which project you are interested in, and Manish can share more details here.',
+    'Manish''s technical skills are listed on the Skills page. If you have a question about a specific technology, leave it here for Manish.',
+    'You can use the Contact page on the portfolio to reach Manish. You can also leave your project details here for him to follow up.',
+    'You are welcome! Let me know if you have another question.',
+    'Thanks for your message! I have saved it for Manish, and he can reply to you in this chat.'
+  );
+
 create table if not exists public.chat_bot_settings (
   id boolean primary key default true check (id),
   enabled boolean not null default true
@@ -80,15 +106,25 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  assistant_id uuid;
 begin
   if not coalesce((select enabled from public.chat_bot_settings where id), false) then
     return new;
   end if;
 
+  select admins.user_id
+  into assistant_id
+  from public.portfolio_admins as admins
+  join auth.users as admin_users on admin_users.id = admins.user_id
+  where admin_users.email_confirmed_at is not null
+    and lower(admins.email) = lower(admin_users.email)
+  limit 1;
+
   insert into public.chat_messages (conversation_id, sender_id, body, is_bot)
   values (
     new.id,
-    new.visitor_id,
+    coalesce(assistant_id, new.visitor_id),
     'Hi! Welcome to Mephisto chat. I am the automated assistant. Ask me about projects, skills, or how to get in touch with Manish.',
     true
   );
@@ -125,6 +161,7 @@ set search_path = ''
 as $$
 declare
   conversation_owner uuid;
+  assistant_id uuid;
   message_text text;
   reply_text text;
 begin
@@ -143,6 +180,14 @@ begin
     return new;
   end if;
 
+  select admins.user_id
+  into assistant_id
+  from public.portfolio_admins as admins
+  join auth.users as admin_users on admin_users.id = admins.user_id
+  where admin_users.email_confirmed_at is not null
+    and lower(admins.email) = lower(admin_users.email)
+  limit 1;
+
   message_text := lower(new.body);
 
   if message_text ~ '(^|[^[:alnum:]])(hi|hello|hey)([^[:alnum:]]|$)' then
@@ -160,7 +205,7 @@ begin
   end if;
 
   insert into public.chat_messages (conversation_id, sender_id, body, is_bot)
-  values (new.conversation_id, conversation_owner, reply_text, true);
+  values (new.conversation_id, coalesce(assistant_id, conversation_owner), reply_text, true);
 
   return new;
 end;
