@@ -55,3 +55,7 @@ The pages include Open Graph and Twitter metadata. Because the public domain is 
 3. Add a form notification for `portfolio-contact` to the confirmed inbox, `manishpvt19@gmail.com`.
 
 The form uses browser validation and a honeypot. Local `file://` previews cannot submit to Netlify.
+
+## Admin account profile photos
+
+The dashboard's Admin profile editor now saves its display name in Netlify Database and its photos in private Netlify Blobs. Its API verifies the existing Supabase session and admin allowlist before loading or changing a profile. Deploy the included database migration with the site; no Supabase storage policy change is required for Admin profile uploads. Existing Supabase profile names and photos remain the initial fallback and transfer when saved. Visitor profile photos and chat attachments continue to use their existing Supabase permissions.

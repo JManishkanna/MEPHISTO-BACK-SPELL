@@ -139,6 +139,15 @@ async function getChatProfileImageUrl(path) {
   if (!path) {
     return "";
   }
+  if (path.startsWith("netlify:")) {
+    const saved = visitorProfilePhotoUrls.get(path);
+    if (saved) return saved.url;
+    const response = await adminProfileRequest("/api/admin-profile?image=1");
+    if (!response.ok) throw new Error("Could not load admin profile photo.");
+    const url = URL.createObjectURL(await response.blob());
+    visitorProfilePhotoUrls.set(path, { url, expiresAt: Infinity });
+    return url;
+  }
   const cached = visitorProfilePhotoUrls.get(path);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.url;
@@ -261,16 +270,16 @@ async function loadAdminProfile() {
   adminUserId = user.id;
   const email = user.email || "";
   document.getElementById("admin-profile-email").textContent = email;
-  const { data, error } = await client
-    .from("chat_profiles")
-    .select("display_name, profile_image_path")
-    .eq("user_id", adminUserId)
-    .maybeSingle();
-  if (error) {
-    throw new Error(`Could not load the admin profile: ${error.message}. Run the latest supabase/chat-migration.sql.`);
+  const response = await adminProfileRequest("/api/admin-profile");
+  const saved = await response.json();
+  if (!response.ok) throw new Error(saved.error || "Could not load admin profile.");
+  let data = saved;
+  if (!data) {
+    // Use an existing profile as the initial name and preview until the first save.
+    const legacy = await client.from("chat_profiles").select("display_name, profile_image_path").eq("user_id", adminUserId).maybeSingle();
+    data = legacy.data;
   }
-
-  adminProfileImagePath = data?.profile_image_path || "";
+  adminProfileImagePath = saved?.profile_image_path ? `netlify:${saved.profile_image_path}` : data?.profile_image_path || "";
   const displayName = data?.display_name || user.user_metadata?.full_name || email.split("@")[0] || "Admin";
   document.getElementById("admin-profile-display-name").value = displayName;
   document.getElementById("admin-profile-summary-name").textContent = displayName;
@@ -1946,126 +1955,62 @@ document.getElementById("admin-profile-image-file").addEventListener("change", (
   showAdminProfilePhotoPreview("", file);
 });
 
-document.getElementById("admin-profile-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const displayName = document.getElementById("admin-profile-display-name").value.trim();
-  const fileInput = document.getElementById("admin-profile-image-file");
-  const file = fileInput.files?.[0] || null;
+async function adminProfileRequest(url, options = {}) {
+  const { data, error } = await client.auth.getSession();
+  if (error || !data.session) throw new Error("Please sign in again.");
+  return fetch(url, { ...options, cache: "no-store", headers: { Authorization: `Bearer ${data.session.access_token}` } });
+}
+
+async function saveAdminProfile(removePhoto = false) {
+  const form = document.getElementById("admin-profile-form");
   const status = document.getElementById("admin-profile-status");
-  const saveButton = document.getElementById("admin-profile-save");
-  if (!adminUserId || !displayName || displayName.length > 40
-    || (file && (!chatProfileImageExtensions.has(file.type) || file.size > chatProfileImageMaxSize))) {
+  const buttons = [...form.querySelectorAll("button")];
+  const file = document.getElementById("admin-profile-image-file").files?.[0];
+  const displayName = document.getElementById("admin-profile-display-name").value.trim();
+  if (!displayName || displayName.length > 40 || (!removePhoto && file && (!chatProfileImageExtensions.has(file.type) || file.size > chatProfileImageMaxSize))) {
     setStatus(status, "Enter a display name up to 40 characters and choose a JPEG, PNG, or WebP photo up to 2 MB.", true);
     return;
   }
-
-  saveButton.disabled = true;
-  let uploadedPath = "";
-  const previousPath = adminProfileImagePath;
+  buttons.forEach(button => { button.disabled = true; });
+  setStatus(status, removePhoto ? "Removing profile photo…" : "Saving admin profile…");
   try {
-    if (file) {
-      uploadedPath = `${adminUserId}/${crypto.randomUUID()}.${chatProfileImageExtensions.get(file.type)}`;
-      const { error: uploadError } = await client.storage
-        .from(chatProfileImageBucket)
-        .upload(uploadedPath, file, { contentType: file.type, upsert: false });
-      if (uploadError) {
-        throw new Error(`Could not upload profile photo: ${uploadError.message}`);
-      }
+    const body = new FormData();
+    body.set("display_name", displayName);
+    if (removePhoto) body.set("remove_photo", "true");
+    else if (file) body.set("profile_image", file);
+    else if (adminProfileImagePath && !adminProfileImagePath.startsWith("netlify:")) {
+      const imageResponse = await fetch(await getChatProfileImageUrl(adminProfileImagePath));
+      if (!imageResponse.ok) throw new Error("Could not preserve the current photo. Select a new photo and try again.");
+      const image = await imageResponse.blob();
+      body.set("profile_image", image, "profile-photo");
     }
-
-    const nextPath = uploadedPath || previousPath || null;
-    const { data, error } = await client
-      .from("chat_profiles")
-      .upsert(
-        { user_id: adminUserId, display_name: displayName, profile_image_path: nextPath },
-        { onConflict: "user_id" }
-      )
-      .select("user_id")
-      .maybeSingle();
-    if (error) {
-      throw new Error(`Could not save admin profile: ${error.message}. Run the latest supabase/chat-migration.sql.`);
+    const response = await adminProfileRequest("/api/admin-profile", { method: "PUT", body });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not save admin profile.");
+    for (const [key, cached] of visitorProfilePhotoUrls) {
+      if (key.startsWith("netlify:")) { URL.revokeObjectURL(cached.url); visitorProfilePhotoUrls.delete(key); }
     }
-    if (!data) {
-      throw new Error("The admin profile was not updated. Run the latest supabase/chat-migration.sql and try again.");
-    }
-
-    adminProfileImagePath = nextPath || "";
-    document.getElementById("admin-profile-summary-name").textContent = displayName;
-    fileInput.value = "";
+    adminProfileImagePath = result.profile_image_path ? `netlify:${result.profile_image_path}` : "";
+    document.getElementById("admin-profile-summary-name").textContent = result.display_name;
+    document.getElementById("admin-profile-display-name").value = result.display_name;
+    document.getElementById("admin-profile-image-file").value = "";
     document.getElementById("admin-profile-image-remove").hidden = !adminProfileImagePath;
-    let cleanupMessage = "";
-    if (uploadedPath && previousPath) {
-      const { error: cleanupError } = await client.storage
-        .from(chatProfileImageBucket)
-        .remove([previousPath]);
-      visitorProfilePhotoUrls.delete(previousPath);
-      if (cleanupError) {
-        cleanupMessage = ` The previous photo could not be removed: ${cleanupError.message}`;
-      }
-    }
     await showAdminProfilePhotoPreview(adminProfileImagePath);
     await setAdminProfileAvatar(adminProfileImagePath);
-    setStatus(status, `Admin profile saved.${cleanupMessage}`, Boolean(cleanupMessage));
+    setStatus(status, removePhoto ? "Admin profile photo removed." : "Admin profile saved.");
   } catch (error) {
-    console.error("Could not save admin profile:", error);
-    let cleanupMessage = "";
-    if (uploadedPath && adminProfileImagePath !== uploadedPath) {
-      const { error: cleanupError } = await client.storage
-        .from(chatProfileImageBucket)
-        .remove([uploadedPath]);
-      if (cleanupError) {
-        cleanupMessage = ` The uploaded photo could not be cleaned up: ${cleanupError.message}`;
-      }
-    }
-    setStatus(status, `${error.message}${cleanupMessage}`, true);
-  } finally {
-    saveButton.disabled = false;
-  }
-});
-
-document.getElementById("admin-profile-image-remove").addEventListener("click", async (event) => {
-  const button = event.currentTarget;
-  const status = document.getElementById("admin-profile-status");
-  const previousPath = adminProfileImagePath;
-  if (!adminUserId || !previousPath) {
-    return;
-  }
-
-  button.disabled = true;
-  try {
-    const { data, error } = await client
-      .from("chat_profiles")
-      .update({ profile_image_path: null })
-      .eq("user_id", adminUserId)
-      .select("user_id")
-      .maybeSingle();
-    if (error) {
-      throw new Error(`Could not remove profile photo: ${error.message}. Run the latest supabase/chat-migration.sql.`);
-    }
-    if (!data) {
-      throw new Error("The profile photo was not removed. Refresh the Admin session and try again.");
-    }
-
-    adminProfileImagePath = "";
-    document.getElementById("admin-profile-image-file").value = "";
-    button.hidden = true;
-    visitorProfilePhotoUrls.delete(previousPath);
-    resetAdminProfilePhotoPreview();
-    await setAdminProfileAvatar("");
-    const { error: removeError } = await client.storage
-      .from(chatProfileImageBucket)
-      .remove([previousPath]);
-    if (removeError) {
-      throw new Error(`Profile photo removed, but the image file could not be deleted: ${removeError.message}`);
-    }
-    setStatus(status, "Admin profile photo removed.");
-  } catch (error) {
-    console.error("Could not remove admin profile photo:", error);
     setStatus(status, error.message, true);
   } finally {
-    button.disabled = false;
+    buttons.forEach(button => { button.disabled = false; });
   }
+}
+
+document.getElementById("admin-profile-form").addEventListener("submit", event => {
+  event.preventDefault();
+  saveAdminProfile();
 });
+
+document.getElementById("admin-profile-image-remove").addEventListener("click", () => saveAdminProfile(true));
 
 document.getElementById("admin-visitor-profile-image-file").addEventListener("change", (event) => {
   const file = event.currentTarget.files?.[0] || null;
