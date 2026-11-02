@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="chat.css?v=6" />
+    <link rel="stylesheet" href="chat.css?v=8" />
   </head>
   <body data-page="chat" data-theme="demon">
     <div class="page-shell">
@@ -163,9 +163,10 @@
                     <label class="sr-only" for="chat-message">Your message</label>
                     <textarea id="chat-message" name="message" rows="3" maxlength="2000" placeholder="Write a message…"></textarea>
                     <div class="chat-message-actions">
-                      <label class="chat-attachment-button" for="chat-attachment"><i class="fas fa-paperclip" aria-hidden="true"></i> Attach file</label>
+                      <label class="chat-attachment-button" for="chat-attachment"><i class="fas fa-paperclip" aria-hidden="true"></i><span>Choose file</span></label>
                       <input id="chat-attachment" name="attachment" type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-                      <span id="chat-attachment-name" class="chat-attachment-name"></span>
+                      <span id="chat-attachment-name" class="chat-attachment-name" aria-live="polite"></span>
+                      <button id="chat-clear-attachment" class="chat-clear-attachment" type="button" aria-label="Remove selected attachment" title="Remove attachment" hidden><i class="fas fa-xmark" aria-hidden="true"></i></button>
                       <span class="chat-composer-hint">Enter to send · Shift+Enter for a new line</span>
                       <button class="chat-send-button" type="submit" aria-label="Send message" title="Send message"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
                     </div>
@@ -193,6 +194,6 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
-    <script src="chat.js?v=7"></script>
+    <script src="chat.js?v=8"></script>
   </body>
 </html>

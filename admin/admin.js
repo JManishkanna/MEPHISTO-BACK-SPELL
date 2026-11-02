@@ -45,6 +45,7 @@ let selectedChatConversationId = "";
 let latestAdminChatMessageId = "";
 let latestAdminChatProfileSignature = "";
 let chatInboxTimer = null;
+let chatPresenceTimer = null;
 let chatGroups = [];
 let selectedChatGroupId = "";
 let latestAdminGroupMessageId = "";
@@ -103,6 +104,46 @@ async function loadChatProfiles(userIds) {
   }
   return new Map((data || []).map((profile) => [profile.user_id, profile.display_name]));
 }
+
+async function loadChatPresence(userIds) {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  if (!ids.length) {
+    return new Map();
+  }
+  const { data, error } = await client.rpc("get_chat_presence", {
+    p_user_ids: ids
+  });
+  if (error) {
+    throw error;
+  }
+  return new Map((data || []).map((presence) => [presence.user_id, presence.last_seen_at]));
+}
+
+function isChatUserOnline(lastSeenAt) {
+  const lastSeenTime = Date.parse(lastSeenAt || "");
+  return Number.isFinite(lastSeenTime) && Date.now() - lastSeenTime >= 0 && Date.now() - lastSeenTime < 90000;
+}
+
+function createChatPresenceIndicator(isOnline) {
+  const indicator = previewElement("span", `chat-online-indicator${isOnline ? " is-online" : ""}`, isOnline ? "Online" : "Offline");
+  indicator.setAttribute("aria-label", isOnline ? "User is online" : "User is offline");
+  const dot = document.createElement("span");
+  dot.className = "chat-online-dot";
+  dot.setAttribute("aria-hidden", "true");
+  indicator.prepend(dot);
+  return indicator;
+}
+
+function bindChatFileName(inputId, nameId) {
+  const input = document.getElementById(inputId);
+  const name = document.getElementById(nameId);
+  input.addEventListener("change", () => {
+    name.textContent = input.files?.[0]?.name || "";
+  });
+}
+
+bindChatFileName("admin-chat-file", "admin-chat-file-name");
+bindChatFileName("admin-group-file", "admin-group-file-name");
 
 async function renderChatMessages(messages, currentUserId, conversationId, visitorDisplayName) {
   const container = document.getElementById("admin-chat-messages");
@@ -181,7 +222,7 @@ async function loadSelectedChatMessages() {
     return;
   }
 
-  heading.textContent = `${conversation.display_name} (${conversation.visitor_email})`;
+  heading.textContent = `${conversation.display_name} (${conversation.visitor_email}) · ${conversation.is_online ? "Online" : "Offline"}`;
   form.hidden = false;
   const conversationId = conversation.id;
   const { data, error } = await client
@@ -224,6 +265,16 @@ async function loadChatInbox() {
     setStatus(status, `Could not load visitor display names: ${profileError.message}`, true);
     return;
   }
+  let presenceErrorMessage = "";
+  try {
+    const presenceByUserId = await loadChatPresence(chatConversations.map((conversation) => conversation.visitor_id));
+    chatConversations.forEach((conversation) => {
+      conversation.is_online = isChatUserOnline(presenceByUserId.get(conversation.visitor_id));
+    });
+  } catch (presenceError) {
+    console.error(presenceError);
+    presenceErrorMessage = ` Online status unavailable: ${presenceError.message}`;
+  }
   if (!chatConversations.length) {
     selectedChatConversationId = "";
   } else if (!chatConversations.some((conversation) => conversation.id === selectedChatConversationId)) {
@@ -258,7 +309,7 @@ async function loadChatInbox() {
     const name = previewElement("strong", "", conversation.display_name);
     const email = previewElement("span", "", conversation.visitor_email);
     const preview = previewElement("span", "", latestMessages.get(conversation.id)?.body || latestMessages.get(conversation.id)?.attachment_name || "No messages yet");
-    button.append(name, email, preview);
+    button.append(name, email, preview, createChatPresenceIndicator(Boolean(conversation.is_online)));
     button.addEventListener("click", async () => {
       selectedChatConversationId = conversation.id;
       latestAdminChatMessageId = "";
@@ -270,7 +321,11 @@ async function loadChatInbox() {
     list.append(previewElement("p", "admin-chat-empty", "No visitor conversations yet."));
   }
 
-  setStatus(status, `${chatConversations.length} conversation${chatConversations.length === 1 ? "" : "s"}. Inbox refreshes automatically.`);
+  setStatus(
+    status,
+    `${chatConversations.length} conversation${chatConversations.length === 1 ? "" : "s"}. Inbox refreshes automatically.${presenceErrorMessage}`,
+    Boolean(presenceErrorMessage)
+  );
   try {
     await loadSelectedChatMessages();
   } catch (messageError) {
@@ -376,10 +431,12 @@ async function loadSelectedChatGroup(group) {
     return;
   }
   let memberNames;
+  let memberPresence;
   try {
     memberNames = await loadChatProfiles((members || []).map((member) => member.member_id));
+    memberPresence = await loadChatPresence((members || []).map((member) => member.member_id));
   } catch (profileError) {
-    setStatus(document.getElementById("chat-group-status"), `Could not load member display names: ${profileError.message}`, true);
+    setStatus(document.getElementById("chat-group-status"), `Could not load group member details: ${profileError.message}`, true);
     return;
   }
   membersContainer.replaceChildren();
@@ -389,7 +446,9 @@ async function loadSelectedChatGroup(group) {
     members.forEach((member) => {
       const row = previewElement("div", "admin-group-member");
       const memberName = memberNames.get(member.member_id) || "Visitor";
-      row.append(previewElement("span", "", memberName));
+      const name = previewElement("span", "admin-group-member-name", memberName);
+      const isOnline = isChatUserOnline(memberPresence.get(member.member_id));
+      row.append(name, createChatPresenceIndicator(isOnline));
       const removeButton = previewElement("button", "", "Remove");
       removeButton.type = "button";
       removeButton.setAttribute("aria-label", `Remove member ${memberName}`);
@@ -1202,6 +1261,13 @@ async function verifyAdmin() {
   }
 }
 
+async function updateAdminChatPresence(isOnline) {
+  const { error } = await client.rpc("touch_chat_presence", { p_is_online: isOnline });
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 async function openDashboard() {
   try {
     await verifyAdmin();
@@ -1209,16 +1275,22 @@ async function openDashboard() {
     await Promise.all([loadProjects(), loadSettings(), loadResumeSetting()]);
     let setupMessage = "";
     try {
+      await updateAdminChatPresence(true);
+    } catch (error) {
+      console.error(error);
+      setupMessage = `Online status unavailable: ${error.message}. Run the latest supabase/chat-migration.sql.`;
+    }
+    try {
       await loadSocialLinks();
     } catch (error) {
       console.error(error);
-      setupMessage = `${error.message} Run supabase/social-links-migration.sql in the Supabase SQL Editor to enable link management.`;
+      setupMessage = [setupMessage, `${error.message} Run supabase/social-links-migration.sql in the Supabase SQL Editor to enable link management.`].filter(Boolean).join(" ");
     }
     try {
       await Promise.all([loadCatalogItems("skill"), loadCatalogItems("tool")]);
     } catch (error) {
       console.error(error);
-      setupMessage = `${error.message} Run supabase/skills-tools-migration.sql in the Supabase SQL Editor to enable Skills and Tools management.`;
+      setupMessage = [setupMessage, `${error.message} Run supabase/skills-tools-migration.sql in the Supabase SQL Editor to enable Skills and Tools management.`].filter(Boolean).join(" ");
     }
     await loadChatInbox();
     window.clearInterval(chatInboxTimer);
@@ -1228,6 +1300,16 @@ async function openDashboard() {
         setStatus(document.getElementById("chat-inbox-status"), `Could not refresh chat inbox: ${error.message}`, true);
       });
     }, 10000);
+    window.clearInterval(chatPresenceTimer);
+    chatPresenceTimer = window.setInterval(() => {
+      if (document.visibilityState !== "visible" || dashboard.hidden) {
+        return;
+      }
+      updateAdminChatPresence(true).catch((error) => {
+        console.error("Could not refresh admin chat presence:", error);
+        setStatus(dashboardStatus, `Online status unavailable: ${error.message}`, true);
+      });
+    }, 30000);
     if (setupMessage) {
       setStatus(dashboardStatus, setupMessage, true);
     } else {
@@ -1290,12 +1372,38 @@ loginForm.addEventListener("submit", async (event) => {
 
 document.getElementById("admin-signout").addEventListener("click", async () => {
   window.clearInterval(chatInboxTimer);
+  window.clearInterval(chatPresenceTimer);
+  try {
+    await updateAdminChatPresence(false);
+  } catch (error) {
+    console.error("Could not mark admin offline:", error);
+  }
   const { error } = await client.auth.signOut();
   if (error) {
+    updateAdminChatPresence(true).catch((presenceError) => {
+      console.error("Could not restore admin presence after sign-out failed:", presenceError);
+    });
+    chatPresenceTimer = window.setInterval(() => {
+      if (document.visibilityState === "visible" && !dashboard.hidden) {
+        updateAdminChatPresence(true).catch((presenceError) => {
+          console.error("Could not refresh admin chat presence:", presenceError);
+        });
+      }
+    }, 30000);
     setStatus(dashboardStatus, `Could not sign out: ${error.message}`, true);
     return;
   }
   showLogin("You have signed out.");
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (!client || dashboard.hidden || document.visibilityState !== "visible") {
+    return;
+  }
+  updateAdminChatPresence(true).catch((error) => {
+    console.error("Could not refresh admin chat presence:", error);
+    setStatus(dashboardStatus, `Online status unavailable: ${error.message}`, true);
+  });
 });
 
 document.getElementById("refresh-chat-inbox").addEventListener("click", async () => {
@@ -1350,6 +1458,7 @@ document.getElementById("admin-chat-reply-form").addEventListener("submit", asyn
   }
   input.value = "";
   fileInput.value = "";
+  document.getElementById("admin-chat-file-name").textContent = "";
   await loadChatInbox();
 });
 
@@ -1445,6 +1554,7 @@ document.getElementById("admin-group-reply-form").addEventListener("submit", asy
   }
   input.value = "";
   fileInput.value = "";
+  document.getElementById("admin-group-file-name").textContent = "";
   await loadChatGroups();
 });
 

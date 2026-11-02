@@ -10,6 +10,8 @@
   const messageForm = document.getElementById("chat-message-form");
   const attachmentInput = document.getElementById("chat-attachment");
   const attachmentName = document.getElementById("chat-attachment-name");
+  const clearAttachmentButton = document.getElementById("chat-clear-attachment");
+  const messageActions = document.querySelector(".chat-message-actions");
   const groupList = document.getElementById("chat-group-list");
   const searchInput = document.getElementById("chat-search-input");
   const directButton = document.getElementById("chat-direct-button");
@@ -32,6 +34,7 @@
   let latestMessageId = "";
   let latestProfileSignature = "";
   let pollTimer = null;
+  let presenceTimer = null;
   let groupsTimer = null;
   let isLoadingMessages = false;
   let signupMode = false;
@@ -57,6 +60,7 @@
 
   function setThreadHeader(name, isGroup = false) {
     threadHeading.textContent = name;
+    chatPresence.dataset.online = "false";
     chatPresence.lastChild.textContent = isGroup ? " Group conversation" : " Chat privately";
     threadAvatar.classList.toggle("chat-group-avatar", isGroup);
     threadAvatar.classList.toggle("chat-direct-avatar", !isGroup);
@@ -115,6 +119,7 @@
     activeGroup = null;
     latestMessageId = "";
     window.clearInterval(pollTimer);
+    window.clearInterval(presenceTimer);
     window.clearInterval(groupsTimer);
     sessionPanel.hidden = true;
     sessionPanel.classList.remove("chat-showing-list");
@@ -257,6 +262,7 @@
       setThreadHeader("Manish");
       directButton.classList.add("active");
       await loadMessages();
+      await refreshThreadPresence();
     }
     renderGroupList();
   }
@@ -269,7 +275,7 @@
     setThreadHeader(group.name, true);
     directButton.classList.remove("active");
     renderGroupList();
-    await loadMessages();
+    await Promise.all([loadMessages(), refreshThreadPresence()]);
   }
 
   function selectDirectChat() {
@@ -281,6 +287,54 @@
     directButton.classList.add("active");
     renderGroupList();
     loadMessages();
+    refreshThreadPresence();
+  }
+
+  async function refreshThreadPresence() {
+    if (!currentUser) {
+      return;
+    }
+
+    const requestedChatType = activeChatType;
+    const requestedGroupId = activeGroup?.id;
+    try {
+      if (requestedChatType === "direct") {
+        const { data, error } = await client.rpc("is_chat_admin_online");
+        if (error) {
+          throw error;
+        }
+        if (activeChatType !== "direct") {
+          return;
+        }
+        chatPresence.dataset.online = String(Boolean(data));
+        chatPresence.lastChild.textContent = data ? " Online now" : " Offline";
+        return;
+      }
+
+      if (!requestedGroupId) {
+        return;
+      }
+      const { data, error } = await client.rpc("count_chat_group_online", {
+        p_group_id: requestedGroupId
+      });
+      if (error) {
+        throw error;
+      }
+      if (activeChatType === "group" && activeGroup?.id === requestedGroupId) {
+        chatPresence.dataset.online = String(data > 0);
+        chatPresence.lastChild.textContent = ` ${data} online`;
+      }
+    } catch (error) {
+      console.error("Could not refresh chat presence:", error);
+      setStatus(sessionStatus, `Online status is unavailable: ${error.message}`, true);
+    }
+  }
+
+  async function touchOwnPresence(isOnline) {
+    const { error } = await client.rpc("touch_chat_presence", { p_is_online: isOnline });
+    if (error) {
+      throw error;
+    }
   }
 
   async function renderMessages(messages, chatType, chatId, profileNames) {
@@ -423,6 +477,13 @@
 
     const displayName = await getOrCreateDisplayName(user);
     showSession(user, displayName);
+    let presenceErrorMessage = "";
+    try {
+      await touchOwnPresence(true);
+    } catch (error) {
+      console.error("Could not mark chat user online:", error);
+      presenceErrorMessage = ` Online status is unavailable: ${error.message}`;
+    }
     setStatus(sessionStatus, "Opening your private conversation…");
     conversationId = await getConversation(user);
     activeChatType = "direct";
@@ -434,9 +495,23 @@
     await loadMessages();
     window.clearInterval(pollTimer);
     pollTimer = window.setInterval(loadMessages, 5000);
+    window.clearInterval(presenceTimer);
+    presenceTimer = window.setInterval(async () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+      try {
+        await touchOwnPresence(true);
+      } catch (error) {
+        console.error("Could not refresh chat presence:", error);
+        setStatus(sessionStatus, `Online status is unavailable: ${error.message}`, true);
+      }
+      await refreshThreadPresence();
+    }, 30000);
     window.clearInterval(groupsTimer);
     groupsTimer = window.setInterval(loadJoinedGroups, 15000);
-    setStatus(sessionStatus, "Messages refresh automatically.");
+    setStatus(sessionStatus, `Messages refresh automatically.${presenceErrorMessage}`, Boolean(presenceErrorMessage));
+    await refreshThreadPresence();
   }
 
   async function initialize() {
@@ -562,13 +637,41 @@
 
   document.getElementById("chat-signout").addEventListener("click", async () => {
     window.clearInterval(pollTimer);
+    window.clearInterval(presenceTimer);
     window.clearInterval(groupsTimer);
+    try {
+      await touchOwnPresence(false);
+    } catch (error) {
+      console.error("Could not mark chat user offline:", error);
+    }
     const { error } = await client.auth.signOut();
     if (error) {
+      try {
+        await touchOwnPresence(true);
+      } catch (presenceError) {
+        console.error("Could not restore chat presence after sign-out failed:", presenceError);
+      }
+      presenceTimer = window.setInterval(() => {
+        if (document.visibilityState === "visible") {
+          touchOwnPresence(true).catch((presenceError) => {
+            console.error("Could not refresh chat presence:", presenceError);
+          });
+        }
+      }, 30000);
       setStatus(sessionStatus, `Could not sign out: ${error.message}`, true);
       return;
     }
     showAuth("You have signed out.");
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (currentUser && document.visibilityState === "visible") {
+      touchOwnPresence(true).catch((error) => {
+        console.error("Could not refresh chat presence:", error);
+        setStatus(sessionStatus, `Online status is unavailable: ${error.message}`, true);
+      });
+      refreshThreadPresence();
+    }
   });
 
   document.getElementById("chat-direct-button").addEventListener("click", selectDirectChat);
@@ -647,9 +750,20 @@
     setStatus(sessionStatus, "Joined group chat.");
   });
 
+  function resetAttachmentSelection() {
+    attachmentInput.value = "";
+    attachmentName.textContent = "";
+    clearAttachmentButton.hidden = true;
+    messageActions.classList.remove("has-attachment");
+  }
+
+  clearAttachmentButton.addEventListener("click", resetAttachmentSelection);
+
   attachmentInput.addEventListener("change", () => {
     const file = attachmentInput.files[0];
     attachmentName.textContent = file ? file.name : "";
+    clearAttachmentButton.hidden = !file;
+    messageActions.classList.toggle("has-attachment", Boolean(file));
     if (file && (!allowedAttachmentTypes.has(file.type) || file.size > maxAttachmentSize)) {
       setStatus(
         sessionStatus,
@@ -658,8 +772,7 @@
           : "Choose a JPG, PNG, GIF, or WebP image, or a supported document file.",
         true
       );
-      attachmentInput.value = "";
-      attachmentName.textContent = "";
+      resetAttachmentSelection();
     } else {
       setStatus(sessionStatus, "");
     }
@@ -732,8 +845,7 @@
       }
 
       input.value = "";
-      attachmentInput.value = "";
-      attachmentName.textContent = "";
+      resetAttachmentSelection();
       setStatus(sessionStatus, "Message sent.");
       await loadMessages();
     } catch (error) {

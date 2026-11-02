@@ -1,9 +1,17 @@
 create table if not exists public.portfolio_admins (
-  email text primary key
+  email text primary key,
+  user_id uuid references auth.users(id) on delete cascade
 );
 
+alter table public.portfolio_admins
+  add column if not exists user_id uuid references auth.users(id) on delete cascade;
+
+create unique index if not exists portfolio_admins_user_id_uidx
+  on public.portfolio_admins (user_id)
+  where user_id is not null;
+
 alter table public.portfolio_admins enable row level security;
-revoke all on public.portfolio_admins from anon, authenticated;
+revoke all on public.portfolio_admins from public, anon, authenticated;
 
 create or replace function public.is_portfolio_admin()
 returns boolean
@@ -14,8 +22,11 @@ set search_path = ''
 as $$
   select exists (
     select 1
-    from public.portfolio_admins
-    where lower(email) = lower(coalesce((select auth.jwt() ->> 'email'), ''))
+    from public.portfolio_admins as admins
+    join auth.users as admin_users on admin_users.id = admins.user_id
+    where admins.user_id = (select auth.uid())
+      and admin_users.email_confirmed_at is not null
+      and lower(admins.email) = lower(admin_users.email)
   );
 $$;
 
@@ -333,5 +344,9 @@ create policy "Admins can delete portfolio resumes"
 on storage.objects for delete to authenticated
 using (bucket_id = 'portfolio-resumes' and public.is_portfolio_admin());
 
--- After creating the admin user in Supabase Auth, add the same email:
--- insert into public.portfolio_admins (email) values ('your-admin@example.com');
+-- After creating and verifying the admin user in Supabase Auth, bind the
+-- confirmed account's UUID from the Auth dashboard to its email allowlist row.
+-- Do not bind a visitor account based only on its email address.
+-- insert into public.portfolio_admins (email, user_id)
+-- values ('your-admin@example.com', 'AUTH-USER-UUID')
+-- on conflict (email) do update set user_id = excluded.user_id;

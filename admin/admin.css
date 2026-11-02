@@ -213,6 +213,38 @@
   overflow-wrap: anywhere;
 }
 
+.admin-group-member-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chat-online-indicator {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.chat-online-indicator.is-online {
+  color: #54cf8a;
+}
+
+.chat-online-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.chat-online-indicator.is-online .chat-online-dot {
+  box-shadow: 0 0 0 3px color-mix(in srgb, #54cf8a 16%, transparent);
+}
+
 .admin-group-member button {
   flex: 0 0 auto;
   padding: 5px 8px;
@@ -281,6 +313,11 @@
   font-size: 0.8rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.admin-chat-conversation .chat-online-indicator {
+  overflow: visible;
+  white-space: normal;
 }
 
 .admin-chat-conversation .admin-chat-group-id {
@@ -374,6 +411,62 @@
   color: var(--text);
   font: inherit;
   resize: vertical;
+}
+
+.admin-chat-file-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  border-radius: 22px;
+  background: var(--gradient-soft);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.admin-chat-file-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.admin-chat-file-button i {
+  color: var(--primary);
+}
+
+.admin-chat-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.admin-chat-file-input:focus-visible + .admin-chat-file-name {
+  outline: 2px solid var(--primary);
+}
+
+.admin-chat-file-name {
+  width: fit-content;
+  max-width: min(100%, 360px);
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.admin-chat-file-name:empty {
+  display: none;
 }
 
 .sr-only {

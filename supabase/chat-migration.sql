@@ -19,10 +19,20 @@ create table if not exists public.chat_profiles (
   display_name text not null check (char_length(btrim(display_name)) between 1 and 40)
 );
 
+create table if not exists public.chat_presence (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  last_seen_at timestamptz not null default now()
+);
+
+alter table public.portfolio_admins
+  add column if not exists user_id uuid references auth.users(id) on delete cascade;
+
 alter table public.chat_profiles enable row level security;
+alter table public.chat_presence enable row level security;
 
 revoke all on public.chat_profiles from public, anon, authenticated;
 grant select, insert, update on public.chat_profiles to authenticated;
+revoke all on public.chat_presence from public, anon, authenticated;
 
 drop policy if exists "Signed-in users can read chat display names" on public.chat_profiles;
 create policy "Signed-in users can read chat display names"
@@ -170,6 +180,127 @@ create table if not exists public.chat_group_members (
   joined_at timestamptz not null default now(),
   primary key (group_id, member_id)
 );
+
+create or replace function public.touch_chat_presence(p_is_online boolean default true)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  authenticated_user_id uuid := auth.uid();
+begin
+  if authenticated_user_id is null then
+    raise exception 'Sign in to update chat presence.' using errcode = '42501';
+  end if;
+
+  insert into public.chat_presence (user_id, last_seen_at)
+  values (
+    authenticated_user_id,
+    case when p_is_online then now() else now() - interval '10 minutes' end
+  )
+  on conflict (user_id) do update
+  set last_seen_at = excluded.last_seen_at;
+end;
+$$;
+
+revoke all on function public.touch_chat_presence(boolean) from public, anon;
+grant execute on function public.touch_chat_presence(boolean) to authenticated;
+
+drop policy if exists "Chat users can read visible presence" on public.chat_presence;
+
+create or replace function public.is_chat_admin_online()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select
+    (select auth.uid()) is not null
+    and exists (
+      select 1
+      from public.portfolio_admins as admins
+      join auth.users as admin_users on admin_users.id = admins.user_id
+      join public.chat_presence as presence on presence.user_id = admins.user_id
+      where admin_users.email_confirmed_at is not null
+        and lower(admins.email) = lower(admin_users.email)
+        and presence.last_seen_at > now() - interval '90 seconds'
+    );
+$$;
+
+revoke all on function public.is_chat_admin_online() from public, anon;
+grant execute on function public.is_chat_admin_online() to authenticated;
+
+create or replace function public.get_chat_presence(p_user_ids uuid[])
+returns table (user_id uuid, last_seen_at timestamptz)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or not public.is_portfolio_admin() then
+    raise exception 'Only admins can inspect visitor presence.' using errcode = '42501';
+  end if;
+
+  return query
+  select presence.user_id, presence.last_seen_at
+  from public.chat_presence as presence
+  where presence.user_id = any(coalesce(p_user_ids, array[]::uuid[]))
+    and (
+      exists (
+        select 1
+        from public.chat_conversations
+        where chat_conversations.visitor_id = presence.user_id
+      )
+      or exists (
+        select 1
+        from public.chat_group_members
+        where chat_group_members.member_id = presence.user_id
+      )
+    );
+end;
+$$;
+
+revoke all on function public.get_chat_presence(uuid[]) from public, anon;
+grant execute on function public.get_chat_presence(uuid[]) to authenticated;
+
+create or replace function public.count_chat_group_online(p_group_id uuid)
+returns integer
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  online_count integer;
+begin
+  if auth.uid() is null or (
+    not public.is_portfolio_admin()
+    and not exists (
+      select 1
+      from public.chat_group_members
+      where group_id = p_group_id
+        and member_id = auth.uid()
+    )
+  ) then
+    raise exception 'You cannot view presence for this chat group.' using errcode = '42501';
+  end if;
+
+  select count(*)::integer
+  into online_count
+  from public.chat_group_members as members
+  join public.chat_presence as presence on presence.user_id = members.member_id
+  where members.group_id = p_group_id
+    and presence.last_seen_at > now() - interval '90 seconds';
+
+  return online_count;
+end;
+$$;
+
+revoke all on function public.count_chat_group_online(uuid) from public, anon;
+grant execute on function public.count_chat_group_online(uuid) to authenticated;
 
 create table if not exists public.chat_group_messages (
   id uuid primary key default gen_random_uuid(),

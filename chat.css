@@ -597,8 +597,16 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
+  background: var(--muted);
+}
+
+.chat-presence[data-online="true"] .chat-presence-dot {
   background: #54cf8a;
   box-shadow: 0 0 0 3px color-mix(in srgb, #54cf8a 15%, transparent);
+}
+
+.chat-presence[data-online="false"] .chat-presence-dot {
+  box-shadow: none;
 }
 
 .chat-thread-secure {
@@ -707,18 +715,36 @@
   align-items: center;
   gap: 8px;
   width: fit-content;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--muted);
-  font-size: 0.8rem;
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  border-radius: 22px;
+  background: var(--gradient-soft);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
 .chat-attachment-button:hover,
 .chat-attachment-button:focus-within {
   border-color: var(--primary);
   color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.chat-attachment-button i {
+  color: var(--primary);
+}
+
+.chat-message-actions.has-attachment .chat-attachment-button {
+  border-color: #54cf8a;
+  background: color-mix(in srgb, #54cf8a 12%, var(--card));
+}
+
+.chat-message-actions.has-attachment .chat-attachment-button i {
+  color: #54cf8a;
 }
 
 #chat-attachment {
@@ -735,8 +761,46 @@
 
 .chat-attachment-name {
   min-width: 0;
+  max-width: min(38vw, 260px);
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: rgba(255,255,255,0.035);
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.chat-attachment-name:empty {
+  display: none;
+}
+
+.chat-clear-attachment {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.chat-clear-attachment:hover {
+  border-color: #ff6d7b;
+  color: #ff6d7b;
+}
+
+.chat-clear-attachment[hidden] {
+  display: none;
+}
+
+.chat-attachment-name:focus {
+  outline: 2px solid var(--primary);
   overflow-wrap: anywhere;
 }
 
