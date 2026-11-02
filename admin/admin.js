@@ -1764,6 +1764,7 @@ async function openDashboard() {
     await verifyAdmin();
     showDashboard();
     await Promise.all([loadProjects(), loadSettings(), loadResumeSetting()]);
+    await loadContactDetails();
     let setupMessage = "";
     try {
       await loadAdminProfile();
@@ -2914,3 +2915,46 @@ projectForm.addEventListener("input", renderProjectsPagePreview);
 projectForm.addEventListener("change", renderProjectsPagePreview);
 
 initialize();
+
+async function loadContactDetails() {
+  const form = document.getElementById("contact-details-form");
+  const status = document.getElementById("contact-details-status");
+  try {
+    const response = await fetch("/api/contact-details", { cache: "no-store" });
+    const details = await response.json();
+    if (!response.ok) throw new Error(details.error || "Could not load contact details.");
+    const values = details || { email: "manishpvt19@gmail.com", phone: "+91 8248 186 303", location: "Chennai, Tamil Nadu, India" };
+    for (const key of ["email", "phone", "location"]) form.elements.namedItem(key).value = values[key];
+    form.querySelector("button").disabled = false;
+    setStatus(status, "");
+  } catch (error) {
+    setStatus(status, `${error.message} Reopen the dashboard to retry.`, true);
+  }
+}
+
+document.getElementById("contact-details-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
+  const status = document.getElementById("contact-details-status");
+  button.disabled = true;
+  setStatus(status, "Saving contact details…");
+  try {
+    const { data, error } = await client.auth.getSession();
+    if (error || !data.session) throw new Error("Please sign in again to save changes.");
+    const values = Object.fromEntries(new FormData(form));
+    const response = await fetch("/api/contact-details", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
+      body: JSON.stringify(values)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not save contact details.");
+    for (const key of ["email", "phone", "location"]) form.elements.namedItem(key).value = result[key];
+    setStatus(status, "Contact details saved. Your website now shows the updated details.");
+  } catch (error) {
+    setStatus(status, error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});

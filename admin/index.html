@@ -51,12 +51,28 @@
           <a href="#admin-account">Admin profile</a>
           <a href="#profile-settings">GitHub profile</a>
           <a href="#resume-settings">Resume</a>
+          <a href="#contact-settings">Contact details</a>
           <a href="#social-settings">Social links</a>
           <a href="#skills-manager">Skills</a>
           <a href="#tools-manager">Tools</a>
           <a href="#projects-manager">Projects</a>
           <a href="#chat-inbox">Chat inbox</a>
         </nav>
+
+        <section class="admin-settings" id="contact-settings" data-admin-section="contact-settings" aria-labelledby="contact-settings-heading" hidden>
+          <h2 id="contact-settings-heading">Contact details</h2>
+          <p class="admin-help">Update the email, phone number, and location shown on your website.</p>
+          <form id="contact-details-form" class="admin-form">
+            <label for="contact-details-email">Public email</label>
+            <input id="contact-details-email" name="email" type="email" maxlength="254" autocomplete="email" required />
+            <label for="contact-details-phone">Phone number</label>
+            <input id="contact-details-phone" name="phone" type="tel" maxlength="40" autocomplete="tel" required />
+            <label for="contact-details-location">Location</label>
+            <input id="contact-details-location" name="location" maxlength="160" autocomplete="address-level2" required />
+            <button type="submit" class="btn btn-primary" disabled>Save contact details</button>
+            <p id="contact-details-status" class="admin-status" role="status" aria-live="polite">Loading contact details…</p>
+          </form>
+        </section>
 
         <section class="admin-settings admin-account-settings" id="admin-account" data-admin-section="admin-account" aria-label="Admin profile" hidden>
             <form id="admin-profile-form" class="admin-profile-form">
@@ -515,6 +531,6 @@
     </main>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="admin.js?v=18"></script>
+    <script src="admin.js?v=19"></script>
   </body>
 </html>
