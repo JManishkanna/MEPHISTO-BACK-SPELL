@@ -96,16 +96,39 @@
               <div class="chat-session-heading">
                 <div>
                   <span class="eyebrow">Signed in as <span id="chat-user-email"></span></span>
-                  <h2 id="chat-session-heading">Your conversation</h2>
+                  <h2>Your conversations</h2>
                 </div>
                 <button id="chat-signout" class="btn btn-secondary" type="button">Sign out</button>
               </div>
-              <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages"></div>
-              <form id="chat-message-form" class="chat-message-form">
-                <label class="sr-only" for="chat-message">Your message</label>
-                <textarea id="chat-message" name="message" rows="3" maxlength="2000" placeholder="Write a message…" required></textarea>
-                <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane" aria-hidden="true"></i> Send</button>
-              </form>
+              <div class="chat-room-layout">
+                <aside class="chat-room-sidebar" aria-label="Conversations and group chats">
+                  <h3>Private chat</h3>
+                  <button id="chat-direct-button" class="chat-room-button active" type="button">Chat with Manish</button>
+                  <h3>Group chats</h3>
+                  <div id="chat-group-list" class="chat-group-list"></div>
+                  <form id="chat-join-group-form" class="chat-join-group-form">
+                    <label for="chat-group-id">Join with chat ID</label>
+                    <input id="chat-group-id" name="group_id" type="text" maxlength="36" placeholder="Paste group chat ID" required />
+                    <button class="btn btn-secondary" type="submit">Join group</button>
+                  </form>
+                  <p class="chat-help">Ask the admin for one of the five group chat IDs.</p>
+                </aside>
+                <div class="chat-thread">
+                  <h3 id="chat-thread-heading">Chat with Manish</h3>
+                  <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages"></div>
+                  <form id="chat-message-form" class="chat-message-form">
+                    <label class="sr-only" for="chat-message">Your message</label>
+                    <textarea id="chat-message" name="message" rows="3" maxlength="2000" placeholder="Write a message…"></textarea>
+                    <div class="chat-message-actions">
+                      <label class="chat-attachment-button" for="chat-attachment"><i class="fas fa-paperclip" aria-hidden="true"></i> Attach file</label>
+                      <input id="chat-attachment" name="attachment" type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                      <span id="chat-attachment-name" class="chat-attachment-name"></span>
+                      <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane" aria-hidden="true"></i> Send</button>
+                    </div>
+                    <p class="chat-help">Photos and common documents up to 10 MB.</p>
+                  </form>
+                </div>
+              </div>
               <p id="chat-session-status" class="chat-status" role="status" aria-live="polite"></p>
             </section>
           </div>
@@ -126,6 +149,6 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
-    <script src="chat.js?v=2"></script>
+    <script src="chat.js?v=3"></script>
   </body>
 </html>

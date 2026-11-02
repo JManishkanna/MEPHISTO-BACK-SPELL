@@ -8,16 +8,37 @@
   const sessionStatus = document.getElementById("chat-session-status");
   const messageList = document.getElementById("chat-messages");
   const messageForm = document.getElementById("chat-message-form");
+  const attachmentInput = document.getElementById("chat-attachment");
+  const attachmentName = document.getElementById("chat-attachment-name");
+  const groupList = document.getElementById("chat-group-list");
   const switchButton = document.getElementById("chat-auth-switch");
   const switchText = document.getElementById("chat-auth-switch-text");
   const resendConfirmationButton = document.getElementById("chat-resend-confirmation");
   let client = null;
   let currentUser = null;
   let conversationId = null;
+  let joinedGroups = [];
+  let activeGroup = null;
+  let activeChatType = "direct";
   let latestMessageId = "";
   let pollTimer = null;
+  let groupsTimer = null;
   let isLoadingMessages = false;
   let signupMode = false;
+  const maxAttachmentSize = 10 * 1024 * 1024;
+  const allowedAttachmentTypes = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "application/pdf",
+    "text/plain",
+    "text/csv",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ]);
 
   function setStatus(element, message, isError = false) {
     element.textContent = message;
@@ -58,7 +79,10 @@
   function showAuth(message = "", isError = false) {
     currentUser = null;
     conversationId = null;
+    activeGroup = null;
     latestMessageId = "";
+    window.clearInterval(pollTimer);
+    window.clearInterval(groupsTimer);
     sessionPanel.hidden = true;
     authPanel.hidden = false;
     messageList.replaceChildren();
@@ -101,8 +125,79 @@
     throw insertError;
   }
 
-  function renderMessages(messages) {
+  function renderGroupList() {
+    groupList.replaceChildren();
+    if (!joinedGroups.length) {
+      const empty = document.createElement("p");
+      empty.className = "chat-help";
+      empty.textContent = "No group chats joined yet.";
+      groupList.append(empty);
+      return;
+    }
+
+    joinedGroups.forEach((group) => {
+      const button = document.createElement("button");
+      button.className = `chat-room-button${activeChatType === "group" && activeGroup?.id === group.id ? " active" : ""}`;
+      button.type = "button";
+      button.textContent = group.name;
+      button.addEventListener("click", () => selectGroup(group));
+      groupList.append(button);
+    });
+  }
+
+  async function loadJoinedGroups() {
+    if (!currentUser) {
+      return;
+    }
+    const { data, error } = await client
+      .from("chat_group_members")
+      .select("group_id, chat_groups(id, name)")
+      .eq("member_id", currentUser.id)
+      .order("joined_at", { ascending: false });
+    if (error) {
+      console.error(error);
+      setStatus(sessionStatus, `Could not load group chats: ${error.message}`, true);
+      return;
+    }
+    joinedGroups = (data || []).map((membership) => membership.chat_groups).filter(Boolean);
+    if (activeGroup && !joinedGroups.some((group) => group.id === activeGroup.id)) {
+      activeGroup = null;
+      activeChatType = "direct";
+      latestMessageId = "";
+      document.getElementById("chat-thread-heading").textContent = "Chat with Manish";
+      document.getElementById("chat-direct-button").classList.add("active");
+      await loadMessages();
+    }
+    renderGroupList();
+  }
+
+  async function selectGroup(group) {
+    activeChatType = "group";
+    activeGroup = group;
+    latestMessageId = "";
+    document.getElementById("chat-thread-heading").textContent = group.name;
+    document.getElementById("chat-direct-button").classList.remove("active");
+    renderGroupList();
+    await loadMessages();
+  }
+
+  function selectDirectChat() {
+    activeChatType = "direct";
+    activeGroup = null;
+    latestMessageId = "";
+    document.getElementById("chat-thread-heading").textContent = "Chat with Manish";
+    document.getElementById("chat-direct-button").classList.add("active");
+    renderGroupList();
+    loadMessages();
+  }
+
+  async function renderMessages(messages, chatType, chatId) {
+    const isCurrentChat = () => chatType === activeChatType
+      && chatId === (activeChatType === "group" ? activeGroup?.id : conversationId);
     if (!messages.length) {
+      if (!isCurrentChat()) {
+        return;
+      }
       const empty = document.createElement("p");
       empty.className = "chat-empty";
       empty.textContent = "Send a message to start the conversation.";
@@ -115,42 +210,86 @@
     if (newestId === latestMessageId && messageList.childElementCount) {
       return;
     }
-    latestMessageId = newestId;
 
     const fragment = document.createDocumentFragment();
-    messages.forEach((message) => {
+    for (const message of messages) {
       const item = document.createElement("article");
       item.className = `chat-message${message.sender_id === currentUser.id ? " is-own" : ""}`;
       const author = document.createElement("strong");
-      author.textContent = message.sender_id === currentUser.id ? "You" : "Manish";
-      const body = document.createElement("p");
-      body.textContent = message.body;
+      author.textContent = message.sender_id === currentUser.id
+        ? "You"
+        : (chatType === "direct" ? "Manish" : "Group member");
+      if (message.body) {
+        const body = document.createElement("p");
+        body.textContent = message.body;
+        item.append(author, body);
+      } else {
+        item.append(author);
+      }
+      if (message.attachment_path) {
+        const { data, error } = await client.storage
+          .from("chat-attachments")
+          .createSignedUrl(message.attachment_path, 3600);
+        if (!error && data?.signedUrl) {
+          if (message.attachment_path.match(/\.(jpe?g|png|gif|webp)$/i)) {
+            const image = document.createElement("img");
+            image.className = "chat-attachment-preview";
+            image.src = data.signedUrl;
+            image.alt = message.attachment_name || "Shared image";
+            image.loading = "lazy";
+            item.append(image);
+          }
+          const attachment = document.createElement("a");
+          attachment.className = "chat-attachment-link";
+          attachment.href = data.signedUrl;
+          attachment.target = "_blank";
+          attachment.rel = "noopener noreferrer";
+          attachment.download = message.attachment_name || "";
+          const icon = document.createElement("i");
+          icon.className = "fas fa-paperclip";
+          icon.setAttribute("aria-hidden", "true");
+          attachment.append(icon, document.createTextNode(message.attachment_name || "Download attachment"));
+          item.append(attachment);
+        }
+      }
       const time = document.createElement("time");
       time.dateTime = message.created_at;
       time.textContent = new Date(message.created_at).toLocaleString();
-      item.append(author, body, time);
+      item.append(time);
       fragment.append(item);
-    });
+    }
+    if (!isCurrentChat()) {
+      return;
+    }
+    latestMessageId = newestId;
     messageList.replaceChildren(fragment);
     messageList.scrollTop = messageList.scrollHeight;
   }
 
   async function loadMessages() {
-    if (!conversationId || isLoadingMessages) {
+    if (!currentUser || (!conversationId && activeChatType === "direct") || (!activeGroup && activeChatType === "group") || isLoadingMessages) {
       return;
     }
+    const requestChatType = activeChatType;
+    const requestChatId = activeChatType === "group" ? activeGroup.id : conversationId;
     isLoadingMessages = true;
     try {
+      const table = requestChatType === "group" ? "chat_group_messages" : "chat_messages";
+      const idColumn = requestChatType === "group" ? "group_id" : "conversation_id";
       const { data, error } = await client
-        .from("chat_messages")
-        .select("id, sender_id, body, created_at")
-        .eq("conversation_id", conversationId)
+        .from(table)
+        .select("id, sender_id, body, attachment_path, attachment_name, created_at")
+        .eq(idColumn, requestChatId)
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) {
         throw error;
       }
-      renderMessages((data || []).reverse());
+      if (requestChatType !== activeChatType
+        || requestChatId !== (activeChatType === "group" ? activeGroup?.id : conversationId)) {
+        return;
+      }
+      await renderMessages((data || []).reverse(), requestChatType, requestChatId);
     } catch (error) {
       console.error(error);
       setStatus(sessionStatus, `Could not load messages: ${error.message}`, true);
@@ -172,10 +311,18 @@
     showSession(user);
     setStatus(sessionStatus, "Opening your private conversation…");
     conversationId = await getConversation(user);
-    setStatus(sessionStatus, "Messages refresh automatically.");
+    activeChatType = "direct";
+    activeGroup = null;
+    document.getElementById("chat-direct-button").classList.add("active");
+    document.getElementById("chat-thread-heading").textContent = "Chat with Manish";
+    setStatus(sessionStatus, "Loading your conversations…");
+    await loadJoinedGroups();
     await loadMessages();
     window.clearInterval(pollTimer);
     pollTimer = window.setInterval(loadMessages, 5000);
+    window.clearInterval(groupsTimer);
+    groupsTimer = window.setInterval(loadJoinedGroups, 15000);
+    setStatus(sessionStatus, "Messages refresh automatically.");
   }
 
   async function initialize() {
@@ -299,39 +446,135 @@
     setStatus(authStatus, `If ${email} has an unconfirmed account, a new confirmation link is on its way.`);
   });
 
-  messageForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const input = document.getElementById("chat-message");
-    const body = input.value.trim();
-    if (!body || !conversationId || !currentUser || body.length > 2000) {
-      return;
-    }
-    const sendButton = messageForm.querySelector("button[type='submit']");
-    sendButton.disabled = true;
-    setStatus(sessionStatus, "Sending…");
-    const { error } = await client.from("chat_messages").insert({
-      conversation_id: conversationId,
-      sender_id: currentUser.id,
-      body
-    });
-    sendButton.disabled = false;
-    if (error) {
-      setStatus(sessionStatus, `Message could not be sent: ${error.message}`, true);
-      return;
-    }
-    input.value = "";
-    setStatus(sessionStatus, "Message sent.");
-    await loadMessages();
-  });
-
   document.getElementById("chat-signout").addEventListener("click", async () => {
     window.clearInterval(pollTimer);
+    window.clearInterval(groupsTimer);
     const { error } = await client.auth.signOut();
     if (error) {
       setStatus(sessionStatus, `Could not sign out: ${error.message}`, true);
       return;
     }
     showAuth("You have signed out.");
+  });
+
+  document.getElementById("chat-direct-button").addEventListener("click", selectDirectChat);
+
+  document.getElementById("chat-join-group-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = document.getElementById("chat-group-id");
+    const groupId = input.value.trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(groupId)) {
+      setStatus(sessionStatus, "Enter a valid group chat ID.", true);
+      return;
+    }
+
+    const button = event.currentTarget.querySelector("button[type='submit']");
+    button.disabled = true;
+    setStatus(sessionStatus, "Joining group chat…");
+    const { error } = await client.rpc("join_chat_group", { p_group_id: groupId });
+    button.disabled = false;
+    if (error) {
+      setStatus(sessionStatus, `Could not join this group: ${error.message}`, true);
+      return;
+    }
+
+    input.value = "";
+    await loadJoinedGroups();
+    const group = joinedGroups.find((item) => item.id.toLowerCase() === groupId.toLowerCase());
+    if (!group) {
+      setStatus(sessionStatus, "You joined the group, but it could not be loaded. Try refreshing the page.", true);
+      return;
+    }
+    await selectGroup(group);
+    setStatus(sessionStatus, "Joined group chat.");
+  });
+
+  attachmentInput.addEventListener("change", () => {
+    const file = attachmentInput.files[0];
+    attachmentName.textContent = file ? file.name : "";
+    if (file && (!allowedAttachmentTypes.has(file.type) || file.size > maxAttachmentSize)) {
+      setStatus(
+        sessionStatus,
+        file.size > maxAttachmentSize
+          ? "Files must be 10 MB or smaller."
+          : "Choose a JPG, PNG, GIF, or WebP image, or a supported document file.",
+        true
+      );
+      attachmentInput.value = "";
+      attachmentName.textContent = "";
+    } else {
+      setStatus(sessionStatus, "");
+    }
+  });
+
+  messageForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = document.getElementById("chat-message");
+    const body = input.value.trim();
+    const file = attachmentInput.files[0];
+    if ((!body && !file) || !currentUser || body.length > 2000) {
+      if (body.length > 2000) {
+        setStatus(sessionStatus, "Messages must be 2,000 characters or fewer.", true);
+      }
+      return;
+    }
+
+    const chatType = activeChatType;
+    const chatId = chatType === "group" ? activeGroup?.id : conversationId;
+    if (!chatId) {
+      setStatus(sessionStatus, "Select a conversation before sending.", true);
+      return;
+    }
+
+    const button = messageForm.querySelector("button[type='submit']");
+    button.disabled = true;
+    let uploadedPath = "";
+    try {
+      setStatus(sessionStatus, file ? "Uploading attachment…" : "Sending…");
+      if (file) {
+        if (!allowedAttachmentTypes.has(file.type) || file.size > maxAttachmentSize) {
+          throw new Error("Choose a supported photo or document up to 10 MB.");
+        }
+        const safeName = file.name.replace(/[^A-Za-z0-9._-]/g, "_").slice(-120) || "attachment";
+        uploadedPath = `${chatId}/${currentUser.id}/${crypto.randomUUID()}-${safeName}`;
+        const { error: uploadError } = await client.storage
+          .from("chat-attachments")
+          .upload(uploadedPath, file, { contentType: file.type, upsert: false });
+        if (uploadError) {
+          throw new Error(`Could not upload attachment: ${uploadError.message}`);
+        }
+      }
+
+      const table = chatType === "group" ? "chat_group_messages" : "chat_messages";
+      const payload = {
+        [chatType === "group" ? "group_id" : "conversation_id"]: chatId,
+        sender_id: currentUser.id,
+        body,
+        attachment_path: uploadedPath || null,
+        attachment_name: file?.name || null
+      };
+      const { error } = await client.from(table).insert(payload);
+      if (error) {
+        throw new Error(`Message could not be sent: ${error.message}`);
+      }
+
+      input.value = "";
+      attachmentInput.value = "";
+      attachmentName.textContent = "";
+      setStatus(sessionStatus, "Message sent.");
+      await loadMessages();
+    } catch (error) {
+      console.error(error);
+      if (uploadedPath) {
+        const { error: cleanupError } = await client.storage.from("chat-attachments").remove([uploadedPath]);
+        if (cleanupError) {
+          console.error("Could not remove the unattached chat upload:", cleanupError);
+        }
+      }
+      setStatus(sessionStatus, error.message, true);
+    } finally {
+      button.disabled = false;
+    }
   });
 
   setAuthMode(false);

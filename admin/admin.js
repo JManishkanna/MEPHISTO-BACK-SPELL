@@ -44,6 +44,25 @@ let chatConversations = [];
 let selectedChatConversationId = "";
 let latestAdminChatMessageId = "";
 let chatInboxTimer = null;
+let chatGroups = [];
+let selectedChatGroupId = "";
+let latestAdminGroupMessageId = "";
+
+const chatAttachmentBucket = "chat-attachments";
+const chatAttachmentMaxSize = 10 * 1024 * 1024;
+const chatAttachmentTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+  "text/plain",
+  "text/csv",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+]);
 
 function activateAdminSection(sectionId) {
   const activeId = adminSections.some((section) => section.dataset.adminSection === sectionId)
@@ -68,7 +87,7 @@ function setStatus(element, message, isError = false) {
   element.dataset.error = String(isError);
 }
 
-function renderChatMessages(messages, currentUserId) {
+async function renderChatMessages(messages, currentUserId, conversationId) {
   const container = document.getElementById("admin-chat-messages");
   if (!messages.length) {
     const empty = previewElement("p", "admin-chat-empty", "No messages in this conversation yet.");
@@ -84,16 +103,47 @@ function renderChatMessages(messages, currentUserId) {
   latestAdminChatMessageId = newestId;
 
   const fragment = document.createDocumentFragment();
-  messages.forEach((message) => {
+  for (const message of messages) {
     const item = previewElement("article", `admin-chat-message${message.sender_id === currentUserId ? " is-own" : ""}`);
     const author = previewElement("strong", "", message.sender_id === currentUserId ? "You" : "Visitor");
-    const body = previewElement("p", "", message.body);
+    item.append(author);
+    if (message.body) {
+      item.append(previewElement("p", "", message.body));
+    }
+    if (message.attachment_path) {
+      const { data, error } = await client.storage
+        .from(chatAttachmentBucket)
+        .createSignedUrl(message.attachment_path, 3600);
+      if (selectedChatConversationId !== conversationId) {
+        return;
+      }
+      if (data?.signedUrl && !error) {
+        const link = previewElement("a", "admin-chat-attachment", message.attachment_name || "Download attachment");
+        link.href = data.signedUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        item.append(link);
+        if (/\.(?:jpe?g|png|gif|webp)$/i.test(message.attachment_name || "")) {
+          const image = document.createElement("img");
+          image.src = data.signedUrl;
+          image.alt = message.attachment_name || "Chat attachment";
+          image.loading = "lazy";
+          image.className = "admin-chat-image";
+          item.append(image);
+        }
+      } else {
+        item.append(previewElement("p", "admin-chat-attachment", message.attachment_name || "Attachment unavailable"));
+      }
+    }
     const time = document.createElement("time");
     time.dateTime = message.created_at;
     time.textContent = new Date(message.created_at).toLocaleString();
-    item.append(author, body, time);
+    item.append(time);
     fragment.append(item);
-  });
+  }
+  if (selectedChatConversationId !== conversationId) {
+    return;
+  }
   container.replaceChildren(fragment);
   container.scrollTop = container.scrollHeight;
 }
@@ -115,7 +165,7 @@ async function loadSelectedChatMessages() {
   const conversationId = conversation.id;
   const { data, error } = await client
     .from("chat_messages")
-    .select("id, sender_id, body, created_at")
+    .select("id, sender_id, body, attachment_path, attachment_name, created_at")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -126,7 +176,7 @@ async function loadSelectedChatMessages() {
   if (selectedChatConversationId !== conversationId) {
     return;
   }
-  renderChatMessages((data || []).reverse(), userData?.user?.id);
+  await renderChatMessages((data || []).reverse(), userData?.user?.id, conversationId);
 }
 
 async function loadChatInbox() {
@@ -153,7 +203,7 @@ async function loadChatInbox() {
   if (chatConversations.length) {
     const { data: messages, error: messageError } = await client
       .from("chat_messages")
-      .select("conversation_id, body, created_at")
+      .select("conversation_id, body, attachment_name, created_at")
       .in("conversation_id", chatConversations.map((conversation) => conversation.id))
       .order("created_at", { ascending: false })
       .limit(500);
@@ -174,7 +224,7 @@ async function loadChatInbox() {
     button.type = "button";
     button.classList.toggle("active", conversation.id === selectedChatConversationId);
     const email = previewElement("strong", "", conversation.visitor_email);
-    const preview = previewElement("span", "", latestMessages.get(conversation.id)?.body || "No messages yet");
+    const preview = previewElement("span", "", latestMessages.get(conversation.id)?.body || latestMessages.get(conversation.id)?.attachment_name || "No messages yet");
     button.append(email, preview);
     button.addEventListener("click", async () => {
       selectedChatConversationId = conversation.id;
@@ -193,6 +243,205 @@ async function loadChatInbox() {
   } catch (messageError) {
     setStatus(status, `Could not load conversation messages: ${messageError.message}`, true);
   }
+  await loadChatGroups();
+}
+
+async function loadChatGroups() {
+  const status = document.getElementById("chat-group-status");
+  const list = document.getElementById("chat-group-list");
+  const { data, error } = await client
+    .from("chat_groups")
+    .select("id, name, created_by, created_at, updated_at")
+    .order("updated_at", { ascending: false });
+  if (error) {
+    setStatus(status, `Could not load group rooms: ${error.message}`, true);
+    return;
+  }
+
+  chatGroups = data || [];
+  if (!chatGroups.some((group) => group.id === selectedChatGroupId)) {
+    selectedChatGroupId = chatGroups[0]?.id || "";
+    latestAdminGroupMessageId = "";
+  }
+
+  const latestMessages = new Map();
+  if (chatGroups.length) {
+    const { data: messages, error: messageError } = await client
+      .from("chat_group_messages")
+      .select("group_id, body, attachment_name, created_at")
+      .in("group_id", chatGroups.map((group) => group.id))
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (messageError) {
+      setStatus(status, `Could not load group previews: ${messageError.message}`, true);
+      return;
+    }
+    (messages || []).forEach((message) => {
+      if (!latestMessages.has(message.group_id)) {
+        latestMessages.set(message.group_id, message);
+      }
+    });
+  }
+
+  list.replaceChildren();
+  chatGroups.forEach((group) => {
+    const button = previewElement("button", "admin-chat-conversation");
+    button.type = "button";
+    button.classList.toggle("active", group.id === selectedChatGroupId);
+    const name = previewElement("strong", "", group.name);
+    const previewMessage = latestMessages.get(group.id);
+    const preview = previewElement("span", "", previewMessage?.body || previewMessage?.attachment_name || group.id);
+    const inviteId = previewElement("span", "admin-chat-group-id", group.id);
+    button.append(name, preview, inviteId);
+    button.addEventListener("click", async () => {
+      selectedChatGroupId = group.id;
+      latestAdminGroupMessageId = "";
+      await loadChatGroups();
+    });
+    list.append(button);
+  });
+  if (!chatGroups.length) {
+    list.append(previewElement("p", "admin-chat-empty", "No group rooms yet."));
+    selectedChatGroupId = "";
+  }
+  setStatus(status, `${chatGroups.length} group room${chatGroups.length === 1 ? "" : "s"}.`);
+
+  const selectedGroup = chatGroups.find((group) => group.id === selectedChatGroupId);
+  await loadSelectedChatGroup(selectedGroup);
+}
+
+async function loadSelectedChatGroup(group) {
+  const heading = document.getElementById("chat-group-thread-heading");
+  const inviteId = document.getElementById("chat-group-id");
+  const copyButton = document.getElementById("copy-chat-group-id");
+  const membersContainer = document.getElementById("chat-group-members");
+  const form = document.getElementById("admin-group-reply-form");
+  const messageContainer = document.getElementById("admin-group-messages");
+  if (!group) {
+    heading.textContent = "Select a group room";
+    inviteId.textContent = "Select a room";
+    copyButton.disabled = true;
+    membersContainer.replaceChildren(previewElement("p", "admin-chat-empty", "No room selected."));
+    form.hidden = true;
+    messageContainer.replaceChildren();
+    latestAdminGroupMessageId = "";
+    return;
+  }
+
+  heading.textContent = group.name;
+  inviteId.textContent = group.id;
+  copyButton.disabled = false;
+  form.hidden = false;
+
+  const { data: members, error: membersError } = await client
+    .from("chat_group_members")
+    .select("member_id, joined_at")
+    .eq("group_id", group.id)
+    .order("joined_at", { ascending: true });
+  if (membersError) {
+    setStatus(document.getElementById("chat-group-status"), `Could not load room members: ${membersError.message}`, true);
+    return;
+  }
+  membersContainer.replaceChildren();
+  if (!members?.length) {
+    membersContainer.append(previewElement("p", "admin-chat-empty", "No members have joined yet."));
+  } else {
+    members.forEach((member) => {
+      const row = previewElement("div", "admin-group-member");
+      row.append(previewElement("span", "", member.member_id));
+      const removeButton = previewElement("button", "", "Remove");
+      removeButton.type = "button";
+      removeButton.setAttribute("aria-label", `Remove member ${member.member_id}`);
+      removeButton.addEventListener("click", async () => {
+        const { error } = await client
+          .from("chat_group_members")
+          .delete()
+          .eq("group_id", group.id)
+          .eq("member_id", member.member_id);
+        if (error) {
+          setStatus(document.getElementById("chat-group-status"), `Could not remove member: ${error.message}`, true);
+          return;
+        }
+        await loadSelectedChatGroup(group);
+      });
+      row.append(removeButton);
+      membersContainer.append(row);
+    });
+  }
+
+  const { data: messages, error: messagesError } = await client
+    .from("chat_group_messages")
+    .select("id, group_id, sender_id, body, attachment_path, attachment_name, created_at")
+    .eq("group_id", group.id)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (messagesError) {
+    setStatus(document.getElementById("chat-group-status"), `Could not load room messages: ${messagesError.message}`, true);
+    return;
+  }
+  const { data: userData } = await client.auth.getUser();
+  if (selectedChatGroupId !== group.id) {
+    return;
+  }
+  await renderChatGroupMessages((messages || []).reverse(), userData?.user?.id, group.id);
+}
+
+async function renderChatGroupMessages(messages, currentUserId, groupId) {
+  const container = document.getElementById("admin-group-messages");
+  if (!messages.length) {
+    container.replaceChildren(previewElement("p", "admin-chat-empty", "No messages in this room yet."));
+    latestAdminGroupMessageId = "";
+    return;
+  }
+  const newestId = messages[messages.length - 1].id;
+  if (newestId === latestAdminGroupMessageId && container.childElementCount) {
+    return;
+  }
+  latestAdminGroupMessageId = newestId;
+
+  const fragment = document.createDocumentFragment();
+  for (const message of messages) {
+    const item = previewElement("article", `admin-chat-message${message.sender_id === currentUserId ? " is-own" : ""}`);
+    item.append(previewElement("strong", "", message.sender_id === currentUserId ? "You" : "Member"));
+    if (message.body) {
+      item.append(previewElement("p", "", message.body));
+    }
+    if (message.attachment_path) {
+      const { data, error } = await client.storage
+        .from(chatAttachmentBucket)
+        .createSignedUrl(message.attachment_path, 3600);
+      if (selectedChatGroupId !== groupId) {
+        return;
+      }
+      if (data?.signedUrl && !error) {
+        const link = previewElement("a", "admin-chat-attachment", message.attachment_name || "Download attachment");
+        link.href = data.signedUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        item.append(link);
+        if (/\.(?:jpe?g|png|gif|webp)$/i.test(message.attachment_name || "")) {
+          const image = document.createElement("img");
+          image.src = data.signedUrl;
+          image.alt = message.attachment_name || "Chat attachment";
+          image.loading = "lazy";
+          image.className = "admin-chat-image";
+          item.append(image);
+        }
+      } else {
+        item.append(previewElement("p", "admin-chat-attachment", message.attachment_name || "Attachment unavailable"));
+      }
+    }
+    const time = document.createElement("time");
+    time.dateTime = message.created_at;
+    time.textContent = new Date(message.created_at).toLocaleString();
+    item.append(time);
+    fragment.append(item);
+  }
+  if (selectedChatGroupId !== groupId) {
+    return;
+  }
+  container.replaceChildren(fragment);
+  container.scrollTop = container.scrollHeight;
 }
 
 function previewElement(tagName, className, text = "") {
@@ -998,8 +1247,14 @@ document.getElementById("refresh-chat-inbox").addEventListener("click", async ()
 document.getElementById("admin-chat-reply-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const input = document.getElementById("admin-chat-reply");
+  const fileInput = document.getElementById("admin-chat-file");
   const body = input.value.trim();
-  if (!body || !selectedChatConversationId || body.length > 2000) {
+  const file = fileInput.files?.[0] || null;
+  if ((!body && !file) || !selectedChatConversationId || body.length > 2000) {
+    return;
+  }
+  if (file && (file.size > chatAttachmentMaxSize || !chatAttachmentTypes.has(file.type))) {
+    setStatus(document.getElementById("chat-inbox-status"), "Choose a supported photo or document up to 10 MB.", true);
     return;
   }
   const { data: userData, error: userError } = await client.auth.getUser();
@@ -1007,17 +1262,132 @@ document.getElementById("admin-chat-reply-form").addEventListener("submit", asyn
     setStatus(document.getElementById("chat-inbox-status"), "Your admin session expired. Sign in again to reply.", true);
     return;
   }
+  const conversationId = selectedChatConversationId;
+  let attachmentPath = null;
+  let attachmentName = null;
+  if (file) {
+    attachmentName = file.name.normalize("NFKC").replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^\.+/, "").slice(-180) || "attachment";
+    attachmentPath = `${conversationId}/${userData.user.id}/${crypto.randomUUID()}-${attachmentName}`;
+    const { error: uploadError } = await client.storage
+      .from(chatAttachmentBucket)
+      .upload(attachmentPath, file, { contentType: file.type, upsert: false });
+    if (uploadError) {
+      setStatus(document.getElementById("chat-inbox-status"), `Could not upload attachment: ${uploadError.message}`, true);
+      return;
+    }
+  }
   const { error } = await client.from("chat_messages").insert({
-    conversation_id: selectedChatConversationId,
+    conversation_id: conversationId,
     sender_id: userData.user.id,
-    body
+    body,
+    attachment_path: attachmentPath,
+    attachment_name: attachmentName
   });
   if (error) {
+    if (attachmentPath) {
+      await client.storage.from(chatAttachmentBucket).remove([attachmentPath]);
+    }
     setStatus(document.getElementById("chat-inbox-status"), `Could not send reply: ${error.message}`, true);
     return;
   }
   input.value = "";
+  fileInput.value = "";
   await loadChatInbox();
+});
+
+document.getElementById("chat-group-create-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const nameInput = document.getElementById("chat-group-name");
+  const name = nameInput.value.trim();
+  if (!name || name.length > 80) {
+    return;
+  }
+  const { data: userData, error: userError } = await client.auth.getUser();
+  if (userError || !userData.user) {
+    setStatus(document.getElementById("chat-group-status"), "Your admin session expired. Sign in again to create a room.", true);
+    return;
+  }
+  const { data, error } = await client
+    .from("chat_groups")
+    .insert({ name, created_by: userData.user.id })
+    .select("id, name, created_by, created_at, updated_at")
+    .single();
+  if (error) {
+    setStatus(document.getElementById("chat-group-status"), `Could not create room: ${error.message}`, true);
+    return;
+  }
+  selectedChatGroupId = data.id;
+  latestAdminGroupMessageId = "";
+  nameInput.value = "";
+  form.reset();
+  await loadChatGroups();
+  setStatus(document.getElementById("chat-group-status"), `Room created. Share invite ID ${data.id} only with invited members.`);
+});
+
+document.getElementById("copy-chat-group-id").addEventListener("click", async () => {
+  if (!selectedChatGroupId) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(selectedChatGroupId);
+    setStatus(document.getElementById("chat-group-status"), "Room invite ID copied.");
+  } catch (error) {
+    setStatus(document.getElementById("chat-group-status"), `Could not copy room ID: ${error.message}`, true);
+  }
+});
+
+document.getElementById("admin-group-reply-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const input = document.getElementById("admin-group-reply");
+  const fileInput = document.getElementById("admin-group-file");
+  const body = input.value.trim();
+  const file = fileInput.files?.[0] || null;
+  if (!selectedChatGroupId || (!body && !file) || body.length > 2000) {
+    return;
+  }
+  if (file && (file.size > chatAttachmentMaxSize || !chatAttachmentTypes.has(file.type))) {
+    setStatus(document.getElementById("chat-group-status"), "Choose a supported photo or document up to 10 MB.", true);
+    return;
+  }
+  const { data: userData, error: userError } = await client.auth.getUser();
+  if (userError || !userData.user) {
+    setStatus(document.getElementById("chat-group-status"), "Your admin session expired. Sign in again to send a message.", true);
+    return;
+  }
+
+  let attachmentPath = null;
+  let attachmentName = null;
+  if (file) {
+    attachmentName = file.name.normalize("NFKC").replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^\.+/, "").slice(-180) || "attachment";
+    attachmentPath = `${selectedChatGroupId}/${userData.user.id}/${crypto.randomUUID()}-${attachmentName}`;
+    const { error: uploadError } = await client.storage
+      .from(chatAttachmentBucket)
+      .upload(attachmentPath, file, { contentType: file.type, upsert: false });
+    if (uploadError) {
+      setStatus(document.getElementById("chat-group-status"), `Could not upload attachment: ${uploadError.message}`, true);
+      return;
+    }
+  }
+
+  const groupId = selectedChatGroupId;
+  const { error } = await client.from("chat_group_messages").insert({
+    group_id: groupId,
+    sender_id: userData.user.id,
+    body,
+    attachment_path: attachmentPath,
+    attachment_name: attachmentName
+  });
+  if (error) {
+    if (attachmentPath) {
+      await client.storage.from(chatAttachmentBucket).remove([attachmentPath]);
+    }
+    setStatus(document.getElementById("chat-group-status"), `Could not send group message: ${error.message}`, true);
+    return;
+  }
+  input.value = "";
+  fileInput.value = "";
+  await loadChatGroups();
 });
 
 document.getElementById("new-project").addEventListener("click", () => {
