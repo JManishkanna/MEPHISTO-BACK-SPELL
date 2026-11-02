@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Portfolio Admin | ManishKannaJ.</title>
     <link rel="stylesheet" href="../styles.css" />
-    <link rel="stylesheet" href="admin.css?v=19" />
+    <link rel="stylesheet" href="admin.css?v=20" />
   </head>
   <body data-theme="demon">
     <main class="admin-shell">
@@ -38,12 +38,27 @@
             <span class="eyebrow"><i class="fas fa-sliders" aria-hidden="true"></i> Portfolio content</span>
             <h1>Admin dashboard</h1>
           </div>
-          <details class="admin-profile-editor">
-            <summary>
-              <span id="admin-profile-avatar" class="admin-profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
-              <span id="admin-profile-summary-name">Admin profile</span>
-              <i class="fas fa-chevron-down" aria-hidden="true"></i>
-            </summary>
+          <a class="admin-profile-link" href="#admin-account" aria-label="Edit admin profile">
+            <span id="admin-profile-avatar" class="admin-profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
+            <span id="admin-profile-summary-name">Admin profile</span>
+            <i class="fas fa-pen" aria-hidden="true"></i>
+          </a>
+          <button id="admin-signout" class="btn btn-secondary" type="button">Sign out</button>
+        </div>
+        <p class="admin-status" id="admin-status" role="status" aria-live="polite"></p>
+
+        <nav class="admin-section-nav" aria-label="Admin sections">
+          <a href="#admin-account">Admin profile</a>
+          <a href="#profile-settings">GitHub profile</a>
+          <a href="#resume-settings">Resume</a>
+          <a href="#social-settings">Social links</a>
+          <a href="#skills-manager">Skills</a>
+          <a href="#tools-manager">Tools</a>
+          <a href="#projects-manager">Projects</a>
+          <a href="#chat-inbox">Chat inbox</a>
+        </nav>
+
+        <section class="admin-settings admin-account-settings" id="admin-account" data-admin-section="admin-account" aria-label="Admin profile" hidden>
             <form id="admin-profile-form" class="admin-profile-form">
               <h2>Admin profile</h2>
               <p id="admin-profile-email" class="admin-help"></p>
@@ -61,20 +76,7 @@
               <button id="admin-profile-image-remove" class="btn btn-secondary" type="button" hidden>Remove profile photo</button>
               <p id="admin-profile-status" class="admin-status" role="status" aria-live="polite"></p>
             </form>
-          </details>
-          <button id="admin-signout" class="btn btn-secondary" type="button">Sign out</button>
-        </div>
-        <p class="admin-status" id="admin-status" role="status" aria-live="polite"></p>
-
-        <nav class="admin-section-nav" aria-label="Admin sections">
-          <a href="#profile-settings">GitHub profile</a>
-          <a href="#resume-settings">Resume</a>
-          <a href="#social-settings">Social links</a>
-          <a href="#skills-manager">Skills</a>
-          <a href="#tools-manager">Tools</a>
-          <a href="#projects-manager">Projects</a>
-          <a href="#chat-inbox">Chat inbox</a>
-        </nav>
+        </section>
 
         <section class="admin-settings" id="profile-settings" data-admin-section="profile-settings" aria-labelledby="settings-heading">
           <h2 id="settings-heading">GitHub profile</h2>
