@@ -184,6 +184,144 @@ input[type="file"]::file-selector-button:hover {
   margin: 0;
 }
 
+.admin-chatbot-rules {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.02);
+}
+
+.admin-chatbot-rules h4 {
+  margin: 0 0 5px;
+}
+
+.admin-chatbot-rules > div:first-child .admin-help {
+  margin: 0;
+}
+
+.admin-chatbot-rules code {
+  color: var(--primary);
+}
+
+.admin-chatbot-rule-form,
+.admin-chatbot-rule {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-chatbot-rule-form {
+  grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.5fr) auto;
+  align-items: end;
+}
+
+.admin-chatbot-rule-form > div,
+.admin-chatbot-rule > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-chatbot-rule-form label,
+.admin-chatbot-rule label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.admin-chatbot-rule-form input:not([type="checkbox"]),
+.admin-chatbot-rule-form textarea,
+.admin-chatbot-rule input:not([type="checkbox"]),
+.admin-chatbot-rule textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 11px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+.admin-chatbot-rule-form input:focus-visible,
+.admin-chatbot-rule-form textarea:focus-visible,
+.admin-chatbot-rule input:focus-visible,
+.admin-chatbot-rule textarea:focus-visible {
+  border-color: var(--primary);
+  outline: 2px solid color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.admin-chatbot-rule-form textarea,
+.admin-chatbot-rule textarea {
+  resize: vertical;
+}
+
+.admin-chatbot-rule-form-actions {
+  grid-template-columns: 90px auto;
+  align-items: center;
+}
+
+.admin-chatbot-rule-form-actions label {
+  grid-column: 1 / -1;
+}
+
+.admin-chatbot-rule-form-actions button {
+  grid-column: 1 / -1;
+  white-space: nowrap;
+}
+
+.admin-chatbot-rules-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-chatbot-rule {
+  grid-template-columns: minmax(130px, 0.7fr) minmax(200px, 1.5fr) 90px auto;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(0,0,0,0.08);
+}
+
+.admin-chatbot-rule-enabled {
+  display: flex !important;
+  align-items: center;
+  gap: 7px !important;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.admin-chatbot-rule-enabled input {
+  accent-color: var(--primary);
+}
+
+.admin-chatbot-rule-actions {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 7px !important;
+}
+
+.admin-chatbot-rule-actions button {
+  min-height: 36px;
+}
+
+.admin-chatbot-rule-actions .admin-chatbot-rule-delete {
+  border-color: color-mix(in srgb, #ff6374 48%, var(--border));
+  color: #ff8793;
+}
+
+.admin-chatbot-rule-actions .admin-chatbot-rule-delete:hover {
+  border-color: #ff6374;
+  background: color-mix(in srgb, #ff6374 12%, transparent);
+}
+
+.admin-chatbot-rules-list:empty {
+  display: none;
+}
+
 .admin-group-heading {
   display: flex;
   align-items: end;
@@ -1080,6 +1218,11 @@ input[type="file"]::file-selector-button:hover {
   .admin-group-layout {
     grid-template-columns: 1fr;
   }
+
+  .admin-chatbot-rule-form,
+  .admin-chatbot-rule {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 520px) {
@@ -1125,5 +1268,22 @@ input[type="file"]::file-selector-button:hover {
   .admin-inline-form {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .admin-chatbot-rule-form,
+  .admin-chatbot-rule {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-chatbot-rule-form-actions {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+
+  .admin-chatbot-rule-form-actions label {
+    grid-column: 1 / -1;
+  }
+
+  .admin-chatbot-rule-form-actions button {
+    grid-column: auto;
   }
 }

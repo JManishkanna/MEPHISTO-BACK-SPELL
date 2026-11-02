@@ -91,7 +91,7 @@ flowchart LR
 | Action | Data flow | Access rule |
 | --- | --- | --- |
 | Start private chat | Visitor session → `chat_conversations` → `chat_messages` | Visitor can read/write their own conversation; allowlisted admin can reply. |
-| Greet and auto-reply | New private conversation or visitor message → database trigger → `chat_messages` → Admin inbox | Admins can monitor, pause, or resume automatic replies; visitors cannot change bot settings or mark messages as bot messages. |
+| Greet and auto-reply | New private conversation or visitor message → database trigger + Admin-managed reply rules → `chat_messages` → Admin inbox | Admins can customize keyword/reply rules and pause or resume automatic replies; visitors cannot change bot settings or mark messages as bot messages. |
 | Show online marks | Group member/Admin session → scoped group-presence RPC → shared member names and online states | Only an Admin or member of that group can read its presence. Direct chats show the other participant's status. |
 | Join group | Visitor enters room UUID → `join_chat_group` RPC → `chat_group_members` | Signed-in user is added only to the matching room; the room ID acts as an invite. |
 | Send group message | Member session → `chat_group_messages` | Only room members and allowlisted admins can read or send. |

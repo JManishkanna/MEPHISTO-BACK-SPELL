@@ -83,6 +83,62 @@ $$;
 revoke all on function public.set_chatbot_enabled(boolean) from public, anon;
 grant execute on function public.set_chatbot_enabled(boolean) to authenticated;
 
+create table if not exists public.chat_bot_replies (
+  id uuid primary key default gen_random_uuid(),
+  keyword text not null check (
+    char_length(btrim(keyword)) between 1 and 80
+    and (
+      keyword in ('*', '__greeting__')
+      or btrim(regexp_replace(lower(keyword), '[^[:alnum:]]+', ' ', 'g')) <> ''
+    )
+  ),
+  reply_text text not null check (char_length(btrim(reply_text)) between 1 and 2000),
+  priority integer not null default 0,
+  enabled boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists chat_bot_replies_keyword_lower_uidx
+  on public.chat_bot_replies (lower(keyword));
+
+alter table public.chat_bot_replies enable row level security;
+revoke all on public.chat_bot_replies from public, anon, authenticated;
+grant select, insert, update, delete on public.chat_bot_replies to authenticated;
+
+drop policy if exists "Admins can manage chatbot replies" on public.chat_bot_replies;
+create policy "Admins can manage chatbot replies"
+on public.chat_bot_replies for all to authenticated
+using ((select public.is_portfolio_admin()))
+with check ((select public.is_portfolio_admin()));
+
+insert into public.chat_bot_replies (keyword, reply_text, priority)
+select defaults.keyword, defaults.reply_text, defaults.priority
+from (values
+  ('hi', 'Hello! I can help with information about Manish''s projects, skills, and contact details. What would you like to know?', 10),
+  ('hello', 'Hello! I can help with information about Manish''s projects, skills, and contact details. What would you like to know?', 10),
+  ('hey', 'Hello! I can help with information about Manish''s projects, skills, and contact details. What would you like to know?', 10),
+  ('project', 'You can explore Manish''s work on the Projects page. Tell me which project you are interested in, and Manish can share more details here.', 5),
+  ('portfolio', 'You can explore Manish''s work on the Projects page. Tell me which project you are interested in, and Manish can share more details here.', 5),
+  ('work', 'You can explore Manish''s work on the Projects page. Tell me which project you are interested in, and Manish can share more details here.', 5),
+  ('github', 'You can explore Manish''s work on the Projects page. Tell me which project you are interested in, and Manish can share more details here.', 5),
+  ('skill', 'Manish''s technical skills are listed on the Skills page. If you have a question about a specific technology, leave it here for Manish.', 5),
+  ('technology', 'Manish''s technical skills are listed on the Skills page. If you have a question about a specific technology, leave it here for Manish.', 5),
+  ('tech stack', 'Manish''s technical skills are listed on the Skills page. If you have a question about a specific technology, leave it here for Manish.', 5),
+  ('contact', 'You can use the Contact page on the portfolio to reach Manish. You can also leave your project details here for him to follow up.', 5),
+  ('email', 'You can use the Contact page on the portfolio to reach Manish. You can also leave your project details here for him to follow up.', 5),
+  ('hire', 'You can use the Contact page on the portfolio to reach Manish. You can also leave your project details here for him to follow up.', 5),
+  ('available', 'You can use the Contact page on the portfolio to reach Manish. You can also leave your project details here for him to follow up.', 5),
+  ('thank', 'You are welcome! Let me know if you have another question.', 5),
+  ('thanks', 'You are welcome! Let me know if you have another question.', 5),
+  ('__greeting__', 'Hi! Welcome to Mephisto chat. I am the automated assistant. Ask me about projects, skills, or how to get in touch with Manish.', 1000),
+  ('*', 'Thanks for your message! I have saved it for Manish, and he can reply to you in this chat.', -100)
+) as defaults(keyword, reply_text, priority)
+where not exists (
+  select 1
+  from public.chat_bot_replies as existing
+  where lower(existing.keyword) = lower(defaults.keyword)
+);
+
 drop policy if exists "Visitors and admins can send chat messages" on public.chat_messages;
 create policy "Visitors and admins can send chat messages"
 on public.chat_messages for insert to authenticated
@@ -108,6 +164,7 @@ set search_path = ''
 as $$
 declare
   assistant_id uuid;
+  greeting_text text;
 begin
   if not coalesce((select enabled from public.chat_bot_settings where id), false) then
     return new;
@@ -121,11 +178,18 @@ begin
     and lower(admins.email) = lower(admin_users.email)
   limit 1;
 
+  select replies.reply_text
+  into greeting_text
+  from public.chat_bot_replies as replies
+  where replies.keyword = '__greeting__'
+    and replies.enabled
+  limit 1;
+
   insert into public.chat_messages (conversation_id, sender_id, body, is_bot)
   values (
     new.id,
     coalesce(assistant_id, new.visitor_id),
-    'Hi! Welcome to Mephisto chat. I am the automated assistant. Ask me about projects, skills, or how to get in touch with Manish.',
+    coalesce(greeting_text, 'Hi! Welcome to Mephisto chat. I am the automated assistant. Ask me about projects, skills, or how to get in touch with Manish.'),
     true
   );
   return new;
@@ -142,8 +206,21 @@ for each row execute function public.create_chatbot_greeting();
 insert into public.chat_messages (conversation_id, sender_id, body, is_bot)
 select
   conversations.id,
-  conversations.visitor_id,
-  'Hi! Welcome to Mephisto chat. I am the automated assistant. Ask me about projects, skills, or how to get in touch with Manish.',
+  coalesce(
+    (
+      select admins.user_id
+      from public.portfolio_admins as admins
+      join auth.users as admin_users on admin_users.id = admins.user_id
+      where admin_users.email_confirmed_at is not null
+        and lower(admins.email) = lower(admin_users.email)
+      limit 1
+    ),
+    conversations.visitor_id
+  ),
+  coalesce(
+    (select replies.reply_text from public.chat_bot_replies as replies where replies.keyword = '__greeting__' and replies.enabled limit 1),
+    'Hi! Welcome to Mephisto chat. I am the automated assistant. Ask me about projects, skills, or how to get in touch with Manish.'
+  ),
   true
 from public.chat_conversations as conversations
 where not exists (
@@ -163,7 +240,7 @@ declare
   conversation_owner uuid;
   assistant_id uuid;
   message_text text;
-  reply_text text;
+  matched_reply text;
 begin
   if new.is_bot
     or char_length(btrim(new.body)) = 0
@@ -188,24 +265,30 @@ begin
     and lower(admins.email) = lower(admin_users.email)
   limit 1;
 
-  message_text := lower(new.body);
+  message_text := btrim(regexp_replace(lower(new.body), '[^[:alnum:]]+', ' ', 'g'));
 
-  if message_text ~ '(^|[^[:alnum:]])(hi|hello|hey)([^[:alnum:]]|$)' then
-    reply_text := 'Hello! I can help with information about Manish''s projects, skills, and contact details. What would you like to know?';
-  elsif message_text ~ '(project|portfolio|work|github)' then
-    reply_text := 'You can explore Manish''s work on the Projects page. Tell me which project you are interested in, and Manish can share more details here.';
-  elsif message_text ~ '(skill|technology|tech stack)' then
-    reply_text := 'Manish''s technical skills are listed on the Skills page. If you have a question about a specific technology, leave it here for Manish.';
-  elsif message_text ~ '(contact|email|hire|available)' then
-    reply_text := 'You can use the Contact page on the portfolio to reach Manish. You can also leave your project details here for him to follow up.';
-  elsif message_text ~ '(thank|thanks)' then
-    reply_text := 'You are welcome! Let me know if you have another question.';
-  else
-    reply_text := 'Thanks for your message! I have saved it for Manish, and he can reply to you in this chat.';
-  end if;
+  select replies.reply_text
+  into matched_reply
+  from public.chat_bot_replies as replies
+  where replies.enabled
+    and replies.keyword <> '__greeting__'
+    and (
+      replies.keyword = '*'
+      or position(
+        ' ' || btrim(regexp_replace(lower(replies.keyword), '[^[:alnum:]]+', ' ', 'g')) || ' '
+        in ' ' || message_text || ' '
+      ) > 0
+    )
+  order by (replies.keyword = '*'), replies.priority desc, char_length(replies.keyword) desc, replies.created_at
+  limit 1;
 
   insert into public.chat_messages (conversation_id, sender_id, body, is_bot)
-  values (new.conversation_id, coalesce(assistant_id, conversation_owner), reply_text, true);
+  values (
+    new.conversation_id,
+    coalesce(assistant_id, conversation_owner),
+    coalesce(matched_reply, 'Thanks for your message! I have saved it for Manish, and he can reply to you in this chat.'),
+    true
+  );
 
   return new;
 end;

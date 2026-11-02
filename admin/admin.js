@@ -1297,6 +1297,139 @@ async function loadChatbotSettings() {
     : "Automatic replies are paused. New visitor messages will wait for an Admin reply.");
 }
 
+function createChatbotRuleEditor(rule) {
+  const form = document.createElement("form");
+  form.className = "admin-chatbot-rule";
+
+  const keywordId = `chatbot-keyword-${rule.id}`;
+  const keywordField = previewElement("div");
+  const keywordLabel = previewElement("label", "", "Keyword or phrase");
+  keywordLabel.htmlFor = keywordId;
+  const keywordInput = document.createElement("input");
+  keywordInput.id = keywordId;
+  keywordInput.maxLength = 80;
+  keywordInput.required = true;
+  keywordInput.value = rule.keyword;
+  const isReservedRule = rule.keyword === "*" || rule.keyword === "__greeting__";
+  keywordInput.disabled = isReservedRule;
+  keywordField.append(keywordLabel, keywordInput);
+
+  const replyId = `chatbot-reply-${rule.id}`;
+  const replyField = previewElement("div");
+  const replyLabel = previewElement("label", "", "Automatic reply");
+  replyLabel.htmlFor = replyId;
+  const replyInput = document.createElement("textarea");
+  replyInput.id = replyId;
+  replyInput.maxLength = 2000;
+  replyInput.required = true;
+  replyInput.rows = 2;
+  replyInput.value = rule.reply_text;
+  replyField.append(replyLabel, replyInput);
+
+  const priorityId = `chatbot-priority-${rule.id}`;
+  const priorityField = previewElement("div");
+  const priorityLabel = previewElement("label", "", "Priority");
+  priorityLabel.htmlFor = priorityId;
+  const priorityInput = document.createElement("input");
+  priorityInput.id = priorityId;
+  priorityInput.type = "number";
+  priorityInput.value = String(rule.priority);
+  priorityField.append(priorityLabel, priorityInput);
+
+  const enabledLabel = previewElement("label", "admin-chatbot-rule-enabled", "Enabled");
+  const enabledInput = document.createElement("input");
+  enabledInput.type = "checkbox";
+  enabledInput.checked = rule.keyword === "*" || rule.enabled;
+  enabledInput.disabled = rule.keyword === "*";
+  enabledLabel.prepend(enabledInput);
+
+  const actions = previewElement("div", "admin-chatbot-rule-actions");
+  const saveButton = previewElement("button", "btn btn-secondary", "Save");
+  saveButton.type = "submit";
+  const deleteButton = previewElement("button", "btn btn-secondary admin-chatbot-rule-delete", "Delete");
+  deleteButton.type = "button";
+  deleteButton.disabled = isReservedRule;
+  if (isReservedRule) {
+    deleteButton.title = "The greeting and fallback rules are reserved. You can edit their replies instead.";
+  }
+  actions.append(saveButton, deleteButton);
+  form.append(keywordField, replyField, priorityField, enabledLabel, actions);
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const keyword = keywordInput.value.trim();
+    const replyText = replyInput.value.trim();
+    const priority = Number(priorityInput.value);
+    if (!keyword || keyword.length > 80 || !replyText || replyText.length > 2000 || !Number.isInteger(priority)) {
+      setStatus(document.getElementById("admin-chatbot-rules-status"), "Enter a keyword, a reply up to 2,000 characters, and a whole-number priority.", true);
+      return;
+    }
+
+    saveButton.disabled = true;
+    const { error } = await client
+      .from("chat_bot_replies")
+      .upsert({
+        id: rule.id,
+        keyword,
+        reply_text: replyText,
+        priority,
+        enabled: enabledInput.checked
+      });
+    saveButton.disabled = false;
+    if (error) {
+      setStatus(document.getElementById("admin-chatbot-rules-status"), `Could not save reply rule: ${error.message}`, true);
+      return;
+    }
+    setStatus(document.getElementById("admin-chatbot-rules-status"), `Saved the "${keyword}" reply rule.`);
+    await loadChatbotReplies();
+  });
+
+  deleteButton.addEventListener("click", async () => {
+    if (!window.confirm(`Delete the automatic reply for "${rule.keyword}"?`)) {
+      return;
+    }
+    deleteButton.disabled = true;
+    const { data, error } = await client
+      .from("chat_bot_replies")
+      .delete()
+      .eq("id", rule.id)
+      .select("id");
+    deleteButton.disabled = false;
+    if (error) {
+      setStatus(document.getElementById("admin-chatbot-rules-status"), `Could not delete reply rule: ${error.message}`, true);
+      return;
+    }
+    if (!data?.length) {
+      setStatus(document.getElementById("admin-chatbot-rules-status"), "The rule was not deleted. Refresh the Admin session and try again.", true);
+      return;
+    }
+    setStatus(document.getElementById("admin-chatbot-rules-status"), `Deleted the "${rule.keyword}" reply rule.`);
+    await loadChatbotReplies();
+  });
+
+  return form;
+}
+
+async function loadChatbotReplies() {
+  const list = document.getElementById("admin-chatbot-rules-list");
+  const status = document.getElementById("admin-chatbot-rules-status");
+  const { data, error } = await client
+    .from("chat_bot_replies")
+    .select("id, keyword, reply_text, priority, enabled")
+    .order("priority", { ascending: false })
+    .order("keyword", { ascending: true });
+  if (error) {
+    setStatus(status, `Could not load automatic reply rules: ${error.message}. Run the latest supabase/chatbot-migration.sql.`, true);
+    return;
+  }
+
+  const rules = data || [];
+  list.replaceChildren(...rules.map(createChatbotRuleEditor));
+  if (!rules.length) {
+    setStatus(status, "No automatic reply rules. Add a keyword and response above.");
+  }
+}
+
 async function updateAdminChatPresence(isOnline) {
   const { error } = await client.rpc("touch_chat_presence", { p_is_online: isOnline });
   if (error) {
@@ -1315,6 +1448,12 @@ async function openDashboard() {
     } catch (error) {
       console.error("Could not load chatbot settings:", error);
       setStatus(document.getElementById("admin-chatbot-status"), `Automatic replies unavailable: ${error.message}`, true);
+    }
+    try {
+      await loadChatbotReplies();
+    } catch (error) {
+      console.error("Could not load chatbot replies:", error);
+      setStatus(document.getElementById("admin-chatbot-rules-status"), `Could not load automatic reply rules: ${error.message}`, true);
     }
     try {
       await updateAdminChatPresence(true);
@@ -1470,6 +1609,40 @@ document.getElementById("admin-chatbot-toggle").addEventListener("click", async 
   setStatus(status, data
     ? "Automatic replies are on. New visitor messages receive a bot reply in this inbox."
     : "Automatic replies are paused. New visitor messages will wait for an Admin reply.");
+});
+
+document.getElementById("admin-chatbot-rule-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const formData = new FormData(form);
+  const keyword = String(formData.get("keyword")).trim();
+  const replyText = String(formData.get("reply_text")).trim();
+  const priority = Number(formData.get("priority"));
+  const status = document.getElementById("admin-chatbot-rules-status");
+  if (keyword === "*" || keyword === "__greeting__") {
+    setStatus(status, "The * fallback and __greeting__ welcome rules already exist; edit them in the saved rules list.", true);
+    return;
+  }
+  if (!keyword || keyword.length > 80 || !replyText || replyText.length > 2000 || !Number.isInteger(priority)) {
+    setStatus(status, "Enter a keyword, a reply up to 2,000 characters, and a whole-number priority.", true);
+    return;
+  }
+
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  const { error } = await client
+    .from("chat_bot_replies")
+    .insert({ keyword, reply_text: replyText, priority, enabled: true });
+  button.disabled = false;
+  if (error) {
+    setStatus(status, `Could not add reply rule: ${error.message}`, true);
+    return;
+  }
+
+  form.reset();
+  document.getElementById("admin-chatbot-priority").value = "0";
+  setStatus(status, `Added the "${keyword}" reply rule.`);
+  await loadChatbotReplies();
 });
 
 document.getElementById("admin-chat-reply-form").addEventListener("submit", async (event) => {
