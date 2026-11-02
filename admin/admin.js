@@ -166,8 +166,11 @@ async function renderChatMessages(messages, currentUserId, conversationId, visit
 
   const fragment = document.createDocumentFragment();
   for (const message of messages) {
-    const item = previewElement("article", `admin-chat-message${message.sender_id === currentUserId ? " is-own" : ""}`);
-    const author = previewElement("strong", "", message.sender_id === currentUserId ? "You" : visitorDisplayName);
+    const isOwnMessage = !message.is_bot && message.sender_id === currentUserId;
+    const item = previewElement("article", `admin-chat-message${isOwnMessage ? " is-own" : ""}`);
+    const author = previewElement("strong", "", message.is_bot
+      ? "Mephisto Assistant"
+      : (message.sender_id === currentUserId ? "You" : visitorDisplayName));
     item.append(author);
     if (message.body) {
       item.append(previewElement("p", "", message.body));
@@ -227,7 +230,7 @@ async function loadSelectedChatMessages() {
   const conversationId = conversation.id;
   const { data, error } = await client
     .from("chat_messages")
-    .select("id, sender_id, body, attachment_path, attachment_name, created_at")
+    .select("id, sender_id, body, attachment_path, attachment_name, created_at, is_bot")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -286,7 +289,7 @@ async function loadChatInbox() {
   if (chatConversations.length) {
     const { data: messages, error: messageError } = await client
       .from("chat_messages")
-      .select("conversation_id, body, attachment_name, created_at")
+      .select("conversation_id, body, attachment_name, created_at, is_bot")
       .in("conversation_id", chatConversations.map((conversation) => conversation.id))
       .order("created_at", { ascending: false })
       .limit(500);
@@ -308,7 +311,9 @@ async function loadChatInbox() {
     button.classList.toggle("active", conversation.id === selectedChatConversationId);
     const name = previewElement("strong", "", conversation.display_name);
     const email = previewElement("span", "", conversation.visitor_email);
-    const preview = previewElement("span", "", latestMessages.get(conversation.id)?.body || latestMessages.get(conversation.id)?.attachment_name || "No messages yet");
+    const latestMessage = latestMessages.get(conversation.id);
+    const previewText = latestMessage?.body || latestMessage?.attachment_name || "No messages yet";
+    const preview = previewElement("span", "", latestMessage?.is_bot ? `Assistant: ${previewText}` : previewText);
     button.append(name, email, preview, createChatPresenceIndicator(Boolean(conversation.is_online)));
     button.addEventListener("click", async () => {
       selectedChatConversationId = conversation.id;

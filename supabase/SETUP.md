@@ -5,12 +5,15 @@
 1. Create a Supabase project.
 2. Run [`schema.sql`](./schema.sql) in the Supabase SQL Editor. It creates the public project/settings/social-link tables, RLS policies, starter links, and a public image bucket. Public visitors can read content; only explicitly bound admins can write.
 3. Run [`chat-migration.sql`](./chat-migration.sql) in the Supabase SQL Editor to enable private visitor chats, five starter group rooms, group membership/message tables, the private attachment bucket, and row-level access policies. It is safe to rerun after applying updates.
-4. Create the admin account through the trusted Supabase Dashboard (not visitor sign-up) and verify its email. Enable email/password sign-ups for visitors. If email confirmation is enabled, configure the site URL and add the deployed `/chat.html` URL to Auth's allowed redirect URLs so confirmation links return to chat.
-5. Copy the admin user's UUID from Supabase Auth and explicitly bind that account to the email allowlist using the final SQL example in `schema.sql`. Existing email-only rows no longer grant Admin access. Visitor accounts cannot gain access by registering an allowlisted email; RLS checks the bound user UUID and confirmed email.
-6. Copy the project URL and the **anon/public** key into `supabase-config.js`. Never put a `service_role` or secret key in this file.
-7. Deploy the site over HTTPS. Visitors can sign up and chat at `/chat.html`. Sign in at `/admin/` with the allowlisted admin account to read and reply to private conversations, create group rooms, share room IDs as invite codes, manage members, and read/send room messages.
+4. Run [`chatbot-migration.sql`](./chatbot-migration.sql) to add a saved welcome message and automatic keyword-based replies to visitor direct chats. Bot messages are inserted by database triggers and cannot be sent by clients as bot messages.
+5. Create the admin account through the trusted Supabase Dashboard (not visitor sign-up) and verify its email. Enable email/password sign-ups for visitors. If email confirmation is enabled, configure the site URL and add the deployed `/chat.html` URL to Auth's allowed redirect URLs so confirmation links return to chat.
+6. Copy the admin user's UUID from Supabase Auth and explicitly bind that account to the email allowlist using the final SQL example in `schema.sql`. Existing email-only rows no longer grant Admin access. Visitor accounts cannot gain access by registering an allowlisted email; RLS checks the bound user UUID and confirmed email.
+7. Copy the project URL and the **anon/public** key into `supabase-config.js`. Never put a `service_role` or secret key in this file.
+8. Deploy the site over HTTPS. Visitors can sign up and chat at `/chat.html`. Sign in at `/admin/` with the allowlisted admin account to read and reply to private conversations, create group rooms, share room IDs as invite codes, manage members, and read/send room messages.
 
 For an existing project, run [`admin-user-binding-migration.sql`](./admin-user-binding-migration.sql) in the Supabase SQL Editor. It disables email-only admin access. Bind each intended admin's verified Auth user UUID to the matching `portfolio_admins.email` row using the SQL example in `schema.sql`. Do not automatically bind users by matching email.
+
+For an existing chat project, also run [`chatbot-migration.sql`](./chatbot-migration.sql) after `chat-migration.sql` to enable the automatic greeting and replies. The assistant responds in private visitor chats only; group chats and Admin replies are not auto-replied to.
 
 ### Group chat and attachments
 
@@ -22,6 +25,7 @@ For an existing project, run [`admin-user-binding-migration.sql`](./admin-user-b
 - `chat-attachments` is a private Storage bucket limited to 10 MB per object and the supported image, PDF, text, CSV, Word, and Excel MIME types. Use paths of the form `<conversation-or-group UUID>/<authenticated sender UUID>/<random>-<sanitized filename>`. Access is limited by the corresponding visitor conversation, group membership, or the portfolio-admin override; use authenticated Storage downloads or signed URLs, never public URLs.
 - The visitor client should show only joined rooms returned by the membership query above. It may join a room when the visitor enters a valid room UUID, then use the same private-bucket path convention for room uploads; RLS is the access boundary, not secrecy of the UUID alone.
 - The migration also creates `public.chat_profiles` for visitor display names. Visitors can read names while signed in and can insert or update only their own profile; the table contains no email addresses. Rerun the chat migration after deploying the display-name UI.
+- `chatbot-migration.sql` adds a saved greeting for new conversations and rule-based replies to visitor messages about greetings, projects, skills, and contact. Other messages receive a confirmation that they are saved for Admin. Replies are not AI-generated, and visitors cannot create messages marked as bot responses.
 
 If sending a direct message returns an RLS violation for `chat_messages`, confirm that `schema.sql` and then the latest `chat-migration.sql` both completed successfully in the same Supabase project. The insert policy requires the signed-in user's ID to match both the message sender and the visitor who owns that conversation. Do not disable RLS to work around this error. After applying the migration, sign out and back in so the page uses a fresh session.
 

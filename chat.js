@@ -367,9 +367,12 @@
     const fragment = document.createDocumentFragment();
     for (const message of messages) {
       const item = document.createElement("article");
-      item.className = `chat-message${message.sender_id === currentUser.id ? " is-own" : ""}`;
+      const isOwnMessage = !message.is_bot && message.sender_id === currentUser.id;
+      item.className = `chat-message${isOwnMessage ? " is-own" : ""}`;
       const author = document.createElement("strong");
-      author.textContent = message.sender_id === currentUser.id
+      author.textContent = message.is_bot
+        ? "Mephisto Assistant"
+        : message.sender_id === currentUser.id
         ? "You"
         : (chatType === "direct" ? "Manish" : (profileNames.get(message.sender_id) || "Group member"));
       if (message.body) {
@@ -430,9 +433,12 @@
     try {
       const table = requestChatType === "group" ? "chat_group_messages" : "chat_messages";
       const idColumn = requestChatType === "group" ? "group_id" : "conversation_id";
+      const messageColumns = requestChatType === "direct"
+        ? "id, sender_id, body, attachment_path, attachment_name, created_at, is_bot"
+        : "id, sender_id, body, attachment_path, attachment_name, created_at";
       const { data, error } = await client
         .from(table)
-        .select("id, sender_id, body, attachment_path, attachment_name, created_at")
+        .select(messageColumns)
         .eq(idColumn, requestChatId)
         .order("created_at", { ascending: false })
         .limit(500);
@@ -510,7 +516,7 @@
     }, 30000);
     window.clearInterval(groupsTimer);
     groupsTimer = window.setInterval(loadJoinedGroups, 15000);
-    setStatus(sessionStatus, `Messages refresh automatically.${presenceErrorMessage}`, Boolean(presenceErrorMessage));
+    setStatus(sessionStatus, `Messages refresh automatically. An automated assistant can answer common questions.${presenceErrorMessage}`, Boolean(presenceErrorMessage));
     await refreshThreadPresence();
   }
 
