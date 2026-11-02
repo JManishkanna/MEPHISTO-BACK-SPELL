@@ -13,10 +13,13 @@ Personal portfolio website for a Java full-stack developer, built with HTML, CSS
 - Admin-created group rooms with UUID invite IDs, member management, and group messages.
 - Private file sharing in direct and group conversations. Supported images and common documents are limited to 10 MB per file.
 - Contact form handled by Netlify Forms after form detection is enabled.
+- Search-engine sitemap at `/sitemap.xml`; private Admin and visitor chat pages are excluded from indexing.
 
 ## Local development
 
 This is a static website; there is no package installation or build step. Serve the repository root using a local HTTP server or preview it through your editor. Use the deployed HTTPS site for testing Supabase Auth, email confirmation, database access, storage, and Netlify Forms. A `file://` preview does not support all of those integrations.
+
+The root `sitemap.xml` lists the public portfolio pages, and `robots.txt` points crawlers to it while excluding Admin and visitor chat.
 
 ## Workflows
 

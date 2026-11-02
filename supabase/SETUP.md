@@ -19,6 +19,8 @@
 - The visitor client should show only joined rooms returned by the membership query above. It may join a room when the visitor enters a valid room UUID, then use the same private-bucket path convention for room uploads; RLS is the access boundary, not secrecy of the UUID alone.
 - The migration also creates `public.chat_profiles` for visitor display names. Visitors can read names while signed in and can insert or update only their own profile; the table contains no email addresses. Rerun the chat migration after deploying the display-name UI.
 
+If sending a direct message returns an RLS violation for `chat_messages`, confirm that `schema.sql` and then the latest `chat-migration.sql` both completed successfully in the same Supabase project. The insert policy requires the signed-in user's ID to match both the message sender and the visitor who owns that conversation. Do not disable RLS to work around this error. After applying the migration, sign out and back in so the page uses a fresh session.
+
 For an existing project that already ran `schema.sql`, run [`social-links-migration.sql`](./social-links-migration.sql) in the Supabase SQL Editor to enable social-link management. In Admin, add, edit, reorder, or delete profile links; the public pages read the saved list from Supabase.
 
 For an existing project, run [`github-project-import-migration.sql`](./github-project-import-migration.sql) in the Supabase SQL Editor to enable the atomic GitHub repository import. In Admin, choose **Replace with GitHub repos** to replace all current projects with the account's public repositories. This permanently deletes the current project rows; the import requires a non-empty repository list and runs as one database transaction.

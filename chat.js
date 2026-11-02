@@ -139,41 +139,6 @@
       return existing.id;
     }
 
-    async function getOrCreateDisplayName(user) {
-      const { data: existing, error: lookupError } = await client
-        .from("chat_profiles")
-        .select("display_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (lookupError) {
-        throw lookupError;
-      }
-      if (existing?.display_name) {
-        return existing.display_name;
-      }
-
-      const fallbackName = (user.user_metadata?.display_name
-        || user.email?.split("@")[0]
-        || "Visitor").slice(0, 40).trim() || "Visitor";
-      const { error: insertError } = await client
-        .from("chat_profiles")
-        .insert({ user_id: user.id, display_name: fallbackName });
-      if (!insertError) {
-        return fallbackName;
-      }
-      if (insertError.code === "23505") {
-        const { data: racedProfile, error: racedLookupError } = await client
-          .from("chat_profiles")
-          .select("display_name")
-          .eq("user_id", user.id)
-          .single();
-        if (!racedLookupError) {
-          return racedProfile.display_name;
-        }
-      }
-      throw insertError;
-    }
-
     const { data: created, error: insertError } = await client
       .from("chat_conversations")
       .insert({ visitor_id: user.id, visitor_email: user.email })
@@ -190,6 +155,41 @@
         .single();
       if (!racedLookupError) {
         return racedConversation.id;
+      }
+    }
+    throw insertError;
+  }
+
+  async function getOrCreateDisplayName(user) {
+    const { data: existing, error: lookupError } = await client
+      .from("chat_profiles")
+      .select("display_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (lookupError) {
+      throw lookupError;
+    }
+    if (existing?.display_name) {
+      return existing.display_name;
+    }
+
+    const fallbackName = (user.user_metadata?.display_name
+      || user.email?.split("@")[0]
+      || "Visitor").slice(0, 40).trim() || "Visitor";
+    const { error: insertError } = await client
+      .from("chat_profiles")
+      .insert({ user_id: user.id, display_name: fallbackName });
+    if (!insertError) {
+      return fallbackName;
+    }
+    if (insertError.code === "23505") {
+      const { data: racedProfile, error: racedLookupError } = await client
+        .from("chat_profiles")
+        .select("display_name")
+        .eq("user_id", user.id)
+        .single();
+      if (!racedLookupError) {
+        return racedProfile.display_name;
       }
     }
     throw insertError;
@@ -688,6 +688,14 @@
     button.disabled = true;
     let uploadedPath = "";
     try {
+      const { data: authData, error: authError } = await client.auth.getUser();
+      if (authError) {
+        throw new Error(`Could not verify your chat session: ${authError.message}`);
+      }
+      if (authData.user?.id !== currentUser.id) {
+        throw new Error("Your chat session has changed or expired. Sign out and sign in again.");
+      }
+
       setStatus(sessionStatus, file ? "Uploading attachment…" : "Sending…");
       if (file) {
         if (!allowedAttachmentTypes.has(file.type) || file.size > maxAttachmentSize) {
@@ -713,6 +721,13 @@
       };
       const { error } = await client.from(table).insert(payload);
       if (error) {
+        if (error.code === "42501") {
+          throw new Error(
+            chatType === "direct"
+              ? "Supabase rejected this message under chat_messages row-level security. Sign out and back in; if it continues, rerun supabase/chat-migration.sql after supabase/schema.sql in the Supabase SQL Editor."
+              : "Supabase rejected this message under group chat row-level security. Confirm you are still a member of this group and rerun supabase/chat-migration.sql if needed."
+          );
+        }
         throw new Error(`Message could not be sent: ${error.message}`);
       }
 
