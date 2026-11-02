@@ -610,8 +610,16 @@
 
   async function initializeContactForm() {
     const status = document.getElementById("contact-form-status");
-    if (status && new URLSearchParams(location.search).has("submitted")) {
+    if (!status) {
+      return;
+    }
+
+    const submittedValue = new URLSearchParams(window.location.search).get("submitted");
+    const hasSubmittedForm = submittedValue === "true" || submittedValue === "1" || submittedValue === "yes" || submittedValue === "";
+
+    if (hasSubmittedForm) {
       status.textContent = "Thanks—your message has been submitted. I’ll be in touch.";
+      status.dataset.state = "success";
     }
   }
 

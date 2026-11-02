@@ -40,6 +40,10 @@ let currentResumeUrl = "";
 let selectedSlug = "";
 let selectedSocialLinkId = "";
 let selectedCatalogIds = { skill: "", tool: "" };
+let chatConversations = [];
+let selectedChatConversationId = "";
+let latestAdminChatMessageId = "";
+let chatInboxTimer = null;
 
 function activateAdminSection(sectionId) {
   const activeId = adminSections.some((section) => section.dataset.adminSection === sectionId)
@@ -62,6 +66,133 @@ function activateAdminSection(sectionId) {
 function setStatus(element, message, isError = false) {
   element.textContent = message;
   element.dataset.error = String(isError);
+}
+
+function renderChatMessages(messages, currentUserId) {
+  const container = document.getElementById("admin-chat-messages");
+  if (!messages.length) {
+    const empty = previewElement("p", "admin-chat-empty", "No messages in this conversation yet.");
+    container.replaceChildren(empty);
+    latestAdminChatMessageId = "";
+    return;
+  }
+
+  const newestId = messages[messages.length - 1].id;
+  if (newestId === latestAdminChatMessageId && container.childElementCount) {
+    return;
+  }
+  latestAdminChatMessageId = newestId;
+
+  const fragment = document.createDocumentFragment();
+  messages.forEach((message) => {
+    const item = previewElement("article", `admin-chat-message${message.sender_id === currentUserId ? " is-own" : ""}`);
+    const author = previewElement("strong", "", message.sender_id === currentUserId ? "You" : "Visitor");
+    const body = previewElement("p", "", message.body);
+    const time = document.createElement("time");
+    time.dateTime = message.created_at;
+    time.textContent = new Date(message.created_at).toLocaleString();
+    item.append(author, body, time);
+    fragment.append(item);
+  });
+  container.replaceChildren(fragment);
+  container.scrollTop = container.scrollHeight;
+}
+
+async function loadSelectedChatMessages() {
+  const form = document.getElementById("admin-chat-reply-form");
+  const heading = document.getElementById("chat-thread-heading");
+  const conversation = chatConversations.find((item) => item.id === selectedChatConversationId);
+  if (!conversation) {
+    heading.textContent = "Select a conversation";
+    form.hidden = true;
+    document.getElementById("admin-chat-messages").replaceChildren();
+    latestAdminChatMessageId = "";
+    return;
+  }
+
+  heading.textContent = conversation.visitor_email;
+  form.hidden = false;
+  const conversationId = conversation.id;
+  const { data, error } = await client
+    .from("chat_messages")
+    .select("id, sender_id, body, created_at")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) {
+    throw error;
+  }
+  const { data: userData } = await client.auth.getUser();
+  if (selectedChatConversationId !== conversationId) {
+    return;
+  }
+  renderChatMessages((data || []).reverse(), userData?.user?.id);
+}
+
+async function loadChatInbox() {
+  const status = document.getElementById("chat-inbox-status");
+  const list = document.getElementById("chat-conversation-list");
+  const { data, error } = await client
+    .from("chat_conversations")
+    .select("id, visitor_id, visitor_email, created_at, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(100);
+  if (error) {
+    setStatus(status, `Chat is not set up yet. Run supabase/chat-migration.sql in the Supabase SQL Editor. Details: ${error.message}`, true);
+    return;
+  }
+  chatConversations = data || [];
+  if (!chatConversations.length) {
+    selectedChatConversationId = "";
+  } else if (!chatConversations.some((conversation) => conversation.id === selectedChatConversationId)) {
+    selectedChatConversationId = chatConversations[0].id;
+    latestAdminChatMessageId = "";
+  }
+
+  const latestMessages = new Map();
+  if (chatConversations.length) {
+    const { data: messages, error: messageError } = await client
+      .from("chat_messages")
+      .select("conversation_id, body, created_at")
+      .in("conversation_id", chatConversations.map((conversation) => conversation.id))
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (messageError) {
+      setStatus(status, `Could not load chat previews: ${messageError.message}`, true);
+      return;
+    }
+    (messages || []).forEach((message) => {
+      if (!latestMessages.has(message.conversation_id)) {
+        latestMessages.set(message.conversation_id, message);
+      }
+    });
+  }
+
+  list.replaceChildren();
+  chatConversations.forEach((conversation) => {
+    const button = previewElement("button", "admin-chat-conversation");
+    button.type = "button";
+    button.classList.toggle("active", conversation.id === selectedChatConversationId);
+    const email = previewElement("strong", "", conversation.visitor_email);
+    const preview = previewElement("span", "", latestMessages.get(conversation.id)?.body || "No messages yet");
+    button.append(email, preview);
+    button.addEventListener("click", async () => {
+      selectedChatConversationId = conversation.id;
+      latestAdminChatMessageId = "";
+      await loadChatInbox();
+    });
+    list.append(button);
+  });
+  if (!chatConversations.length) {
+    list.append(previewElement("p", "admin-chat-empty", "No visitor conversations yet."));
+  }
+
+  setStatus(status, `${chatConversations.length} conversation${chatConversations.length === 1 ? "" : "s"}. Inbox refreshes automatically.`);
+  try {
+    await loadSelectedChatMessages();
+  } catch (messageError) {
+    setStatus(status, `Could not load conversation messages: ${messageError.message}`, true);
+  }
 }
 
 function previewElement(tagName, className, text = "") {
@@ -782,6 +913,14 @@ async function openDashboard() {
       console.error(error);
       setupMessage = `${error.message} Run supabase/skills-tools-migration.sql in the Supabase SQL Editor to enable Skills and Tools management.`;
     }
+    await loadChatInbox();
+    window.clearInterval(chatInboxTimer);
+    chatInboxTimer = window.setInterval(() => {
+      loadChatInbox().catch((error) => {
+        console.error(error);
+        setStatus(document.getElementById("chat-inbox-status"), `Could not refresh chat inbox: ${error.message}`, true);
+      });
+    }, 10000);
     if (setupMessage) {
       setStatus(dashboardStatus, setupMessage, true);
     } else {
@@ -843,12 +982,42 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 document.getElementById("admin-signout").addEventListener("click", async () => {
+  window.clearInterval(chatInboxTimer);
   const { error } = await client.auth.signOut();
   if (error) {
     setStatus(dashboardStatus, `Could not sign out: ${error.message}`, true);
     return;
   }
   showLogin("You have signed out.");
+});
+
+document.getElementById("refresh-chat-inbox").addEventListener("click", async () => {
+  await loadChatInbox();
+});
+
+document.getElementById("admin-chat-reply-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const input = document.getElementById("admin-chat-reply");
+  const body = input.value.trim();
+  if (!body || !selectedChatConversationId || body.length > 2000) {
+    return;
+  }
+  const { data: userData, error: userError } = await client.auth.getUser();
+  if (userError || !userData.user) {
+    setStatus(document.getElementById("chat-inbox-status"), "Your admin session expired. Sign in again to reply.", true);
+    return;
+  }
+  const { error } = await client.from("chat_messages").insert({
+    conversation_id: selectedChatConversationId,
+    sender_id: userData.user.id,
+    body
+  });
+  if (error) {
+    setStatus(document.getElementById("chat-inbox-status"), `Could not send reply: ${error.message}`, true);
+    return;
+  }
+  input.value = "";
+  await loadChatInbox();
 });
 
 document.getElementById("new-project").addEventListener("click", () => {

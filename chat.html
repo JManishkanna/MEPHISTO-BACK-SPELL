@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat | ManishKannaJ.</title>
+    <meta name="description" content="Sign in to chat with ManishKannaJ." />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="chat.css" />
+  </head>
+  <body data-page="chat" data-theme="demon">
+    <div class="page-shell">
+      <header class="site-header">
+        <div class="container nav-wrap">
+          <a href="index.html" class="brand" aria-label="Home">
+            <span class="brand-mark"><i class="fab fa-java" aria-hidden="true"></i></span>
+            <span><span class="brand-name">Mephisto.net</span><span class="brand-sub">java Full Stack</span></span>
+          </a>
+          <nav class="nav" aria-label="Main navigation">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="about.html" class="nav-link">About</a>
+            <a href="skills.html" class="nav-link">Skills</a>
+            <a href="projects.html" class="nav-link">Projects</a>
+            <a href="contact.html" class="nav-link">Contact</a>
+            <a href="chat.html" class="nav-link active">Chat</a>
+          </nav>
+          <div class="nav-actions">
+            <div class="theme-picker">
+              <button id="themeToggle" class="theme-toggle" aria-haspopup="true" aria-expanded="false" aria-label="Select color theme"><i class="fa-solid fa-palette" aria-hidden="true"></i><span class="theme-label">Theme</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
+              <div class="theme-menu" role="menu" aria-label="Color themes">
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="classic"><span class="theme-swatch" style="--swatch:#fb4b5a"></span>Classic Dark</button>
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="demon"><span class="theme-swatch" style="--swatch:#ff263f"></span>Red Demon</button>
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="light"><span class="theme-swatch" style="--swatch:#d92336"></span>Light</button>
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="ocean"><span class="theme-swatch" style="--swatch:#18b7d5"></span>Ocean</button>
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="forest"><span class="theme-swatch" style="--swatch:#53c878"></span>Forest</button>
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="violet"><span class="theme-swatch" style="--swatch:#a879ff"></span>Violet</button>
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="gold"><span class="theme-swatch" style="--swatch:#e3a72f"></span>Gold</button>
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="rose"><span class="theme-swatch" style="--swatch:#fa5d9d"></span>Rose</button>
+              </div>
+            </div>
+            <button class="menu-toggle" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false"><span></span><span></span><span></span></button>
+          </div>
+        </div>
+      </header>
+
+      <div class="mobile-menu" id="mobile-menu">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="skills.html">Skills</a>
+        <a href="projects.html">Projects</a>
+        <a href="contact.html">Contact</a>
+        <a href="chat.html">Chat</a>
+      </div>
+
+      <main>
+        <section class="section page-section">
+          <div class="container chat-container">
+            <div class="section-head centered">
+              <span class="eyebrow"><i class="fas fa-comments" aria-hidden="true"></i> Private chat</span>
+              <h1>Let’s talk</h1>
+              <p>Sign in or create an account to start a private conversation.</p>
+            </div>
+
+            <section id="chat-auth" class="chat-card" aria-labelledby="chat-auth-heading">
+              <h2 id="chat-auth-heading">Welcome</h2>
+              <p class="chat-help">Your account is only for chat. It does not grant access to the admin dashboard.</p>
+              <form id="chat-login-form" class="chat-form">
+                <label for="chat-login-email">Email</label>
+                <input id="chat-login-email" name="email" type="email" autocomplete="email" maxlength="254" required />
+                <label for="chat-login-password">Password</label>
+                <input id="chat-login-password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="72" required />
+                <button class="btn btn-primary" type="submit">Sign in</button>
+              </form>
+              <form id="chat-signup-form" class="chat-form" hidden>
+                <label for="chat-signup-email">Email</label>
+                <input id="chat-signup-email" name="email" type="email" autocomplete="email" maxlength="254" required />
+                <label for="chat-signup-password">Password (at least 8 characters)</label>
+                <input id="chat-signup-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required />
+                <button class="btn btn-primary" type="submit">Create account</button>
+              </form>
+              <div class="chat-auth-switch">
+                <span id="chat-auth-switch-text">New here?</span>
+                <button id="chat-auth-switch" class="chat-text-button" type="button">Create an account</button>
+              </div>
+              <p id="chat-auth-status" class="chat-status" role="status" aria-live="polite"></p>
+              <button id="chat-resend-confirmation" class="chat-text-button" type="button" hidden>Resend confirmation email</button>
+            </section>
+
+            <section id="chat-session" class="chat-card chat-session" aria-labelledby="chat-session-heading" hidden>
+              <div class="chat-session-heading">
+                <div>
+                  <span class="eyebrow">Signed in as <span id="chat-user-email"></span></span>
+                  <h2 id="chat-session-heading">Your conversation</h2>
+                </div>
+                <button id="chat-signout" class="btn btn-secondary" type="button">Sign out</button>
+              </div>
+              <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages"></div>
+              <form id="chat-message-form" class="chat-message-form">
+                <label class="sr-only" for="chat-message">Your message</label>
+                <textarea id="chat-message" name="message" rows="3" maxlength="2000" placeholder="Write a message…" required></textarea>
+                <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane" aria-hidden="true"></i> Send</button>
+              </form>
+              <p id="chat-session-status" class="chat-status" role="status" aria-live="polite"></p>
+            </section>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="container footer-wrap">
+          <div class="footer-brand"><span class="brand-mark small"><i class="fab fa-java" aria-hidden="true"></i></span><span>Mephisto.net</span></div>
+          <div class="footer-links">
+            <a href="index.html">Home</a><a href="about.html">About</a><a href="skills.html">Skills</a>
+            <a href="projects.html">Projects</a><a href="contact.html">Contact</a><a href="chat.html">Chat</a>
+          </div>
+          <p class="footer-copy">© 2026 ManishKannaJ. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+    <script src="chat.js"></script>
+  </body>
+</html>

@@ -4,10 +4,11 @@
 
 1. Create a Supabase project.
 2. Run [`schema.sql`](./schema.sql) in the Supabase SQL Editor. It creates the public project/settings/social-link tables, RLS policies, starter links, and a public image bucket. Public visitors can read content; only allowlisted admins can write.
-3. In Supabase Auth, create the admin account with your chosen email and password. Disable public sign-ups.
-4. Add that same email to `public.portfolio_admins` using the final SQL statement in `schema.sql`.
-5. Copy the project URL and the **anon/public** key into `supabase-config.js`. Never put a `service_role` or secret key in this file.
-6. Deploy the site over HTTPS. Sign in at `/admin/`; set your valid GitHub username and edit projects, repository links, demo URLs, and screenshots there.
+3. Run [`chat-migration.sql`](./chat-migration.sql) in the Supabase SQL Editor to create the private visitor chat and admin inbox tables and row-level access policies.
+4. In Supabase Auth, create the admin account with your chosen email and password. Enable email/password sign-ups for visitors. If email confirmation is enabled, configure the site URL and add the deployed `/chat.html` URL to Auth's allowed redirect URLs so confirmation links return to chat.
+5. Add only the admin account's email to `public.portfolio_admins` using the final SQL statement in `schema.sql`. Visitor accounts do not receive admin access; the admin allowlist and database policies enforce this.
+6. Copy the project URL and the **anon/public** key into `supabase-config.js`. Never put a `service_role` or secret key in this file.
+7. Deploy the site over HTTPS. Visitors can sign up and chat at `/chat.html`. Sign in at `/admin/` with the allowlisted admin account to read and reply to conversations.
 
 For an existing project that already ran `schema.sql`, run [`social-links-migration.sql`](./social-links-migration.sql) in the Supabase SQL Editor to enable social-link management. In Admin, add, edit, reorder, or delete profile links; the public pages read the saved list from Supabase.
 

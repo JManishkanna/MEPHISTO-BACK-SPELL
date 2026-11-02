@@ -49,6 +49,7 @@
           <a href="#skills-manager">Skills</a>
           <a href="#tools-manager">Tools</a>
           <a href="#projects-manager">Projects</a>
+          <a href="#chat-inbox">Chat inbox</a>
         </nav>
 
         <section class="admin-settings" id="profile-settings" data-admin-section="profile-settings" aria-labelledby="settings-heading">
@@ -329,12 +330,35 @@
         </div>
       </section>
 
+      <section class="admin-settings" id="chat-inbox" data-admin-section="chat-inbox" aria-labelledby="chat-inbox-heading">
+        <div class="admin-section-heading">
+          <div>
+            <h2 id="chat-inbox-heading">Chat inbox</h2>
+            <p class="admin-help">Private conversations from signed-in visitors. This inbox is visible only to allowlisted admins.</p>
+          </div>
+          <button id="refresh-chat-inbox" class="btn btn-secondary" type="button">Refresh</button>
+        </div>
+        <p id="chat-inbox-status" class="admin-status" role="status" aria-live="polite">Run supabase/chat-migration.sql to enable visitor chat.</p>
+        <div class="admin-chat-layout">
+          <div id="chat-conversation-list" class="admin-chat-conversations" aria-label="Chat conversations"></div>
+          <div class="admin-chat-thread">
+            <h3 id="chat-thread-heading">Select a conversation</h3>
+            <div id="admin-chat-messages" class="admin-chat-messages" role="log" aria-live="polite" aria-label="Selected conversation messages"></div>
+            <form id="admin-chat-reply-form" class="admin-chat-reply" hidden>
+              <label class="sr-only" for="admin-chat-reply">Reply to visitor</label>
+              <textarea id="admin-chat-reply" name="message" rows="3" maxlength="2000" placeholder="Write a reply…" required></textarea>
+              <button class="btn btn-primary" type="submit">Send reply</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       <footer class="admin-footer">
         <a href="../supabase/SETUP.md">Supabase &amp; Netlify setup guide</a>
       </footer>
     </main>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="admin.js?v=8"></script>
+    <script src="admin.js?v=9"></script>
   </body>
 </html>
