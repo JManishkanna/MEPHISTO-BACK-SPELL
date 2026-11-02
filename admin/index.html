@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Portfolio Admin | ManishKannaJ.</title>
     <link rel="stylesheet" href="../styles.css" />
-    <link rel="stylesheet" href="admin.css?v=13" />
+    <link rel="stylesheet" href="admin.css?v=14" />
   </head>
   <body data-theme="demon">
     <main class="admin-shell">
@@ -344,6 +344,29 @@
           <p id="admin-chatbot-status" class="admin-help" role="status" aria-live="polite">Loading automatic reply settings…</p>
           <button id="admin-chatbot-toggle" class="btn btn-secondary" type="button" disabled>Loading…</button>
         </div>
+        <section class="admin-chatbot-rules" aria-labelledby="admin-chatbot-rules-heading">
+          <div>
+            <h4 id="admin-chatbot-rules-heading">Automatic reply rules</h4>
+            <p class="admin-help">Add a word or phrase and the response to send. Use <code>*</code> as the fallback for messages with no matching keyword. Higher priority rules are checked first.</p>
+          </div>
+          <form id="admin-chatbot-rule-form" class="admin-chatbot-rule-form">
+            <div>
+              <label for="admin-chatbot-keyword">Keyword or phrase</label>
+              <input id="admin-chatbot-keyword" name="keyword" maxlength="80" placeholder="e.g. pricing" required />
+            </div>
+            <div>
+              <label for="admin-chatbot-reply">Automatic reply</label>
+              <textarea id="admin-chatbot-reply" name="reply_text" rows="3" maxlength="2000" placeholder="Write the response visitors should receive" required></textarea>
+            </div>
+            <div class="admin-chatbot-rule-form-actions">
+              <label for="admin-chatbot-priority">Priority</label>
+              <input id="admin-chatbot-priority" name="priority" type="number" value="0" />
+              <button class="btn btn-primary" type="submit">Add reply rule</button>
+            </div>
+          </form>
+          <p id="admin-chatbot-rules-status" class="admin-status" role="status" aria-live="polite"></p>
+          <div id="admin-chatbot-rules-list" class="admin-chatbot-rules-list" aria-label="Saved automatic reply rules"></div>
+        </section>
         <div class="admin-chat-layout">
           <div id="chat-conversation-list" class="admin-chat-conversations" aria-label="Chat conversations"></div>
           <div class="admin-chat-thread">
@@ -408,6 +431,6 @@
     </main>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="admin.js?v=14"></script>
+    <script src="admin.js?v=15"></script>
   </body>
 </html>
