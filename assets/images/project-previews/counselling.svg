@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title description">
+  <title id="title">Concept preview for the counselling database project</title>
+  <desc id="description">An illustrative, not captured, database dashboard with record tables and reports.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#101d2d"/>
+      <stop offset="1" stop-color="#102b30"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#39c8cd"/>
+      <stop offset="1" stop-color="#83e6bd"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="600" rx="28" fill="url(#background)"/>
+  <rect x="28" y="28" width="904" height="544" rx="20" fill="#101a29" stroke="#ffffff" stroke-opacity=".14"/>
+  <rect x="28" y="28" width="190" height="544" rx="20" fill="#13212d"/>
+  <circle cx="66" cy="72" r="18" fill="url(#accent)"/>
+  <path d="M57 71h18M66 62v18" stroke="#10232c" stroke-width="3" stroke-linecap="round"/>
+  <text x="96" y="78" fill="#f2f7f8" font-family="Arial,sans-serif" font-size="18" font-weight="700">CareDB</text>
+  <rect x="48" y="122" width="150" height="42" rx="12" fill="#39c8cd" fill-opacity=".16"/>
+  <text x="70" y="149" fill="#83e6bd" font-family="Arial,sans-serif" font-size="14">Data overview</text>
+  <text x="70" y="207" fill="#9db0bb" font-family="Arial,sans-serif" font-size="14">Counselling</text>
+  <text x="70" y="251" fill="#9db0bb" font-family="Arial,sans-serif" font-size="14">Progress records</text>
+  <text x="70" y="295" fill="#9db0bb" font-family="Arial,sans-serif" font-size="14">SQL reports</text>
+  <text x="252" y="88" fill="#f2f7f8" font-family="Arial,sans-serif" font-size="25" font-weight="700">Program data</text>
+  <text x="252" y="116" fill="#9db0bb" font-family="Arial,sans-serif" font-size="14">Illustrative database interface</text>
+  <rect x="252" y="146" width="640" height="68" rx="14" fill="#192a38" stroke="#ffffff" stroke-opacity=".1"/>
+  <text x="278" y="177" fill="#83e6bd" font-family="Arial,sans-serif" font-size="13">PATIENT PROGRESS</text>
+  <text x="278" y="198" fill="#dce8e9" font-family="Arial,sans-serif" font-size="12">Structured records · SQL reporting</text>
+  <rect x="252" y="236" width="640" height="230" rx="14" fill="#192a38" stroke="#ffffff" stroke-opacity=".1"/>
+  <rect x="276" y="260" width="592" height="40" rx="8" fill="#24394a"/>
+  <text x="294" y="286" fill="#83e6bd" font-family="Arial,sans-serif" font-size="12">RECORD</text>
+  <text x="500" y="286" fill="#83e6bd" font-family="Arial,sans-serif" font-size="12">PROGRAM</text>
+  <text x="698" y="286" fill="#83e6bd" font-family="Arial,sans-serif" font-size="12">STATUS</text>
+  <path d="M276 320h592M276 363h592M276 406h592" stroke="#ffffff" stroke-opacity=".09"/>
+  <text x="294" y="346" fill="#c6d1d8" font-family="Arial,sans-serif" font-size="13">Patient record</text>
+  <text x="500" y="346" fill="#c6d1d8" font-family="Arial,sans-serif" font-size="13">Counselling</text>
+  <text x="698" y="346" fill="#83e6bd" font-family="Arial,sans-serif" font-size="13">Tracked</text>
+  <text x="294" y="389" fill="#c6d1d8" font-family="Arial,sans-serif" font-size="13">Progress update</text>
+  <text x="500" y="389" fill="#c6d1d8" font-family="Arial,sans-serif" font-size="13">Recovery</text>
+  <text x="698" y="389" fill="#83e6bd" font-family="Arial,sans-serif" font-size="13">Recorded</text>
+  <rect x="252" y="488" width="640" height="40" rx="10" fill="#39c8cd" fill-opacity=".11"/>
+  <text x="456" y="548" fill="#b9c8ce" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">CONCEPT PREVIEW · NOT A PRODUCT SCREENSHOT</text>
+</svg>

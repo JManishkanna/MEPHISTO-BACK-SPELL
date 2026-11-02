@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Portfolio Admin | ManishKannaJ.</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="admin.css?v=9" />
+  </head>
+  <body data-theme="demon">
+    <main class="admin-shell">
+      <header class="admin-header">
+        <a class="brand" href="../index.html">
+          <span class="brand-mark"><i class="fab fa-java" aria-hidden="true"></i></span>
+          <span><span class="brand-name">Portfolio Admin</span><span class="brand-sub">Manage projects and settings</span></span>
+        </a>
+        <a class="admin-public-link" href="../index.html">View portfolio <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+      </header>
+
+      <section class="admin-panel" id="admin-login-panel" aria-labelledby="admin-title">
+        <span class="eyebrow"><i class="fas fa-lock" aria-hidden="true"></i> Restricted access</span>
+        <h1 id="admin-title">Sign in to your portfolio</h1>
+        <p>Only an email added to the Supabase admin allowlist can manage published content.</p>
+        <form id="admin-login-form" class="admin-form">
+          <label for="admin-email">Admin email</label>
+          <input id="admin-email" name="email" type="email" autocomplete="username" required />
+          <label for="admin-password">Password</label>
+          <input id="admin-password" name="password" type="password" autocomplete="current-password" required />
+          <button class="btn btn-primary" type="submit">Sign in</button>
+        </form>
+        <p class="admin-status" id="admin-auth-status" role="status" aria-live="polite">Configure Supabase using the setup guide before signing in.</p>
+      </section>
+
+      <section class="admin-dashboard" id="admin-dashboard" hidden>
+        <div class="admin-dashboard-heading">
+          <div>
+            <span class="eyebrow"><i class="fas fa-sliders" aria-hidden="true"></i> Portfolio content</span>
+            <h1>Admin dashboard</h1>
+          </div>
+          <button id="admin-signout" class="btn btn-secondary" type="button">Sign out</button>
+        </div>
+        <p class="admin-status" id="admin-status" role="status" aria-live="polite"></p>
+
+        <nav class="admin-section-nav" aria-label="Admin sections">
+          <a href="#profile-settings">GitHub profile</a>
+          <a href="#resume-settings">Resume</a>
+          <a href="#social-settings">Social links</a>
+          <a href="#skills-manager">Skills</a>
+          <a href="#tools-manager">Tools</a>
+          <a href="#projects-manager">Projects</a>
+        </nav>
+
+        <section class="admin-settings" id="profile-settings" data-admin-section="profile-settings" aria-labelledby="settings-heading">
+          <h2 id="settings-heading">GitHub profile</h2>
+          <form id="github-settings-form" class="admin-settings-form">
+            <label for="github-username">Public GitHub username</label>
+            <div class="admin-inline-form">
+              <input id="github-username" name="github_username" type="text" maxlength="39" autocomplete="off" placeholder="your-github-handle" />
+              <button class="btn btn-secondary" type="submit">Save profile</button>
+            </div>
+          </form>
+          <div class="admin-page-preview">
+            <div class="admin-page-preview-heading">
+              <span>Homepage preview</span>
+              <a href="../index.html" target="_blank" rel="noopener noreferrer">View page</a>
+            </div>
+            <div class="admin-preview-window">
+              <div class="admin-preview-sitebar"><span>Mephisto.net</span><span>HOME · GITHUB</span></div>
+              <div id="github-page-preview" class="admin-preview-content"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-settings" id="resume-settings" data-admin-section="resume-settings" aria-labelledby="resume-heading">
+          <h2 id="resume-heading">Resume PDF</h2>
+          <p class="admin-help" id="resume-status" role="status" aria-live="polite">Loading resume settings…</p>
+          <a id="resume-current-link" class="admin-public-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Open current resume</a>
+          <form id="resume-upload-form" class="admin-form admin-resume-form">
+            <label for="resume-file">Upload or replace resume (PDF, max 10 MB)</label>
+            <input id="resume-file" name="resume" type="file" accept="application/pdf,.pdf" required />
+            <div class="admin-form-actions">
+              <button id="resume-upload-button" class="btn btn-primary" type="submit" disabled>Upload resume</button>
+              <button id="resume-delete-button" class="btn btn-secondary" type="button" disabled>Delete resume</button>
+            </div>
+          </form>
+          <div class="admin-page-preview">
+            <div class="admin-page-preview-heading">
+              <span>Homepage preview</span>
+              <a href="../index.html" target="_blank" rel="noopener noreferrer">View page</a>
+            </div>
+            <div class="admin-preview-window">
+              <div class="admin-preview-sitebar"><span>Mephisto.net</span><span>HOME · RESUME</span></div>
+              <div id="resume-page-preview" class="admin-preview-content"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-settings" id="social-settings" data-admin-section="social-settings" aria-labelledby="social-links-heading">
+          <div class="admin-section-heading">
+            <div>
+              <h2 id="social-links-heading">Social and profile links</h2>
+              <p class="admin-help">Add, edit, or remove links shown on the public portfolio pages.</p>
+            </div>
+            <button id="new-social-link" class="btn btn-secondary" type="button">Add link</button>
+          </div>
+          <div class="admin-links-layout">
+            <div id="admin-social-link-list" class="admin-project-items" aria-label="Saved links"></div>
+            <form id="social-link-form" class="admin-form">
+              <h3 id="social-link-editor-heading">New link</h3>
+              <input id="social-link-id" name="id" type="hidden" />
+              <label for="social-link-label">Link name</label>
+              <input id="social-link-label" name="label" maxlength="60" required placeholder="LinkedIn" />
+              <label for="social-link-icon">Icon</label>
+              <select id="social-link-icon" name="icon_key" required>
+                <option value="github">GitHub</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="instagram">Instagram</option>
+                <option value="leetcode">LeetCode</option>
+                <option value="website">Website</option>
+                <option value="youtube">YouTube</option>
+                <option value="x">X</option>
+              </select>
+              <label for="social-link-url">URL (HTTPS)</label>
+              <input id="social-link-url" name="url" type="url" maxlength="500" required placeholder="https://" />
+              <label for="social-link-order">Display order</label>
+              <input id="social-link-order" name="display_order" type="number" min="0" step="1" value="0" required />
+              <div class="admin-form-actions">
+                <button class="btn btn-primary" type="submit">Save link</button>
+                <button id="reset-social-link" class="btn btn-secondary" type="button">Clear</button>
+              </div>
+            </form>
+          </div>
+          <div class="admin-page-preview">
+            <div class="admin-page-preview-heading">
+              <span>Contact page preview</span>
+              <a href="../contact.html" target="_blank" rel="noopener noreferrer">View page</a>
+            </div>
+            <div class="admin-preview-window">
+              <div class="admin-preview-sitebar"><span>Mephisto.net</span><span>CONTACT · SOCIAL LINKS</span></div>
+              <div id="social-page-preview" class="admin-preview-content admin-preview-social-content"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-settings" id="skills-manager" data-admin-section="skills-manager" aria-labelledby="skills-manager-heading">
+          <div class="admin-section-heading">
+            <div>
+              <h2 id="skills-manager-heading">Skills</h2>
+              <p class="admin-help">Manage the items shown in the Skills &amp; Course Progress section.</p>
+            </div>
+            <button id="new-skill" class="btn btn-secondary" type="button">Add skill</button>
+          </div>
+          <div class="admin-links-layout">
+            <div id="admin-skill-list" class="admin-project-items" aria-label="Skills"></div>
+            <form id="skill-form" class="admin-form admin-item-form">
+              <h3 id="skill-editor-heading">New skill</h3>
+              <input name="id" type="hidden" />
+              <label for="skill-name">Skill name</label>
+              <input id="skill-name" name="name" maxlength="80" required placeholder="Java" />
+              <label for="skill-status">Learning status</label>
+              <select id="skill-status" name="status" required>
+                <option value="Completed">Completed</option>
+                <option value="Ongoing">Ongoing</option>
+                <option value="Planned">Planned</option>
+              </select>
+              <label for="skill-icon">Icon class</label>
+              <input id="skill-icon" name="icon_class" maxlength="60" required placeholder="fab fa-java" />
+              <p class="admin-help">Use a Font Awesome class, for example <code>fas fa-database</code>.</p>
+              <label for="skill-order">Display order</label>
+              <input id="skill-order" name="display_order" type="number" min="0" step="1" value="0" required />
+              <div class="admin-form-actions">
+                <button class="btn btn-primary" type="submit">Save skill</button>
+                <button id="reset-skill" class="btn btn-secondary" type="button">Clear</button>
+              </div>
+            </form>
+          </div>
+          <div class="admin-page-preview">
+            <div class="admin-page-preview-heading">
+              <span>Skills page preview</span>
+              <a href="../skills.html" target="_blank" rel="noopener noreferrer">View page</a>
+            </div>
+            <div class="admin-preview-window">
+              <div class="admin-preview-sitebar"><span>Mephisto.net</span><span>SKILLS &amp; COURSE PROGRESS</span></div>
+              <div id="skills-page-preview" class="admin-preview-content admin-preview-card-grid"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-settings" id="tools-manager" data-admin-section="tools-manager" aria-labelledby="tools-manager-heading">
+          <div class="admin-section-heading">
+            <div>
+              <h2 id="tools-manager-heading">Tools</h2>
+              <p class="admin-help">Manage the items shown in the Tools I Use section.</p>
+            </div>
+            <button id="new-tool" class="btn btn-secondary" type="button">Add tool</button>
+          </div>
+          <div class="admin-links-layout">
+            <div id="admin-tool-list" class="admin-project-items" aria-label="Tools"></div>
+            <form id="tool-form" class="admin-form admin-item-form">
+              <h3 id="tool-editor-heading">New tool</h3>
+              <input name="id" type="hidden" />
+              <label for="tool-name">Tool name</label>
+              <input id="tool-name" name="name" maxlength="80" required placeholder="VS Code" />
+              <label for="tool-description">Description</label>
+              <input id="tool-description" name="description" maxlength="120" required placeholder="Code editor" />
+              <label for="tool-icon">Icon class</label>
+              <input id="tool-icon" name="icon_class" maxlength="60" required placeholder="fas fa-code" />
+              <p class="admin-help">Use a Font Awesome class, for example <code>fas fa-code</code>.</p>
+              <label for="tool-order">Display order</label>
+              <input id="tool-order" name="display_order" type="number" min="0" step="1" value="0" required />
+              <div class="admin-form-actions">
+                <button class="btn btn-primary" type="submit">Save tool</button>
+                <button id="reset-tool" class="btn btn-secondary" type="button">Clear</button>
+              </div>
+            </form>
+          </div>
+          <div class="admin-page-preview">
+            <div class="admin-page-preview-heading">
+              <span>Skills page preview</span>
+              <a href="../skills.html#tools" target="_blank" rel="noopener noreferrer">View page</a>
+            </div>
+            <div class="admin-preview-window">
+              <div class="admin-preview-sitebar"><span>Mephisto.net</span><span>TOOLS I USE</span></div>
+              <div id="tools-page-preview" class="admin-preview-content admin-preview-card-grid"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="projects-manager" data-admin-section="projects-manager" aria-labelledby="projects-heading">
+          <div class="admin-content-grid">
+            <section class="admin-project-list" aria-labelledby="projects-heading">
+              <div class="admin-section-heading">
+                <h2 id="projects-heading">Projects</h2>
+                <div class="admin-project-actions">
+                  <button id="import-github-projects" class="btn btn-secondary" type="button">Replace with GitHub repos</button>
+                  <button id="new-project" class="btn btn-secondary" type="button">Add project</button>
+                </div>
+              </div>
+              <p class="admin-help">Importing replaces every project with your public GitHub repositories.</p>
+              <div id="admin-project-list" class="admin-project-items"></div>
+              <button id="import-starter-projects" class="btn btn-secondary" type="button" hidden>Import starter case studies</button>
+            </section>
+
+            <section class="admin-editor" aria-labelledby="editor-heading">
+              <h2 id="editor-heading">Project editor</h2>
+              <form id="project-form" class="admin-form">
+                <div class="admin-field-grid">
+                <div class="admin-field">
+                  <label for="project-title">Project title</label>
+                  <input id="project-title" name="title" maxlength="120" required />
+                </div>
+                <div class="admin-field">
+                  <label for="project-slug">URL slug</label>
+                  <input id="project-slug" name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="80" required />
+                </div>
+                <div class="admin-field">
+                  <label for="project-category">Category</label>
+                  <input id="project-category" name="category" maxlength="60" required />
+                </div>
+                <div class="admin-field">
+                  <label for="project-order">Display order</label>
+                  <input id="project-order" name="display_order" type="number" min="0" step="1" value="0" required />
+                </div>
+                <div class="admin-field admin-field-wide">
+                  <label for="project-description">Short description</label>
+                  <textarea id="project-description" name="description" rows="3" maxlength="500" required></textarea>
+                </div>
+                <div class="admin-field admin-field-wide">
+                  <label for="project-technologies">Technologies, comma separated</label>
+                  <input id="project-technologies" name="technologies" maxlength="250" placeholder="Java, MySQL, API" />
+                </div>
+                <div class="admin-field admin-field-wide">
+                  <label for="project-challenge">Case study: challenge</label>
+                  <textarea id="project-challenge" name="challenge" rows="2" maxlength="1000"></textarea>
+                </div>
+                <div class="admin-field admin-field-wide">
+                  <label for="project-approach">Case study: approach</label>
+                  <textarea id="project-approach" name="approach" rows="2" maxlength="1000"></textarea>
+                </div>
+                <div class="admin-field admin-field-wide">
+                  <label for="project-outcome">Case study: outcome</label>
+                  <textarea id="project-outcome" name="outcome" rows="2" maxlength="1000"></textarea>
+                </div>
+                <div class="admin-field">
+                  <label for="project-github-owner">GitHub owner</label>
+                  <input id="project-github-owner" name="github_owner" maxlength="39" />
+                </div>
+                <div class="admin-field">
+                  <label for="project-github-repo">GitHub repository</label>
+                  <input id="project-github-repo" name="github_repo" maxlength="100" />
+                </div>
+                <div class="admin-field admin-field-wide">
+                  <label for="project-demo-url">Live demo URL (optional)</label>
+                  <input id="project-demo-url" name="live_demo_url" type="url" maxlength="500" placeholder="https://" />
+                </div>
+                <div class="admin-field">
+                  <label for="project-image">Upload screenshot (PNG, JPEG, or WebP; max 5 MB)</label>
+                  <input id="project-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" />
+                </div>
+                <div class="admin-field">
+                  <label for="project-preview-type">Preview type</label>
+                  <select id="project-preview-type" name="preview_type">
+                    <option value="screenshot">Actual screenshot</option>
+                    <option value="concept">Concept illustration</option>
+                  </select>
+                </div>
+                <div class="admin-field admin-field-wide">
+                  <label for="project-image-url">Screenshot or preview image URL</label>
+                  <input id="project-image-url" name="preview_image_url" type="text" inputmode="url" maxlength="1000" placeholder="Upload an image or paste an HTTPS URL" />
+                </div>
+              </div>
+              <div class="admin-form-actions">
+                <button class="btn btn-primary" type="submit">Save project</button>
+                <button id="delete-project" class="btn btn-secondary" type="button" disabled>Delete project</button>
+              </div>
+            </form>
+          </section>
+        </div>
+        <div class="admin-page-preview">
+          <div class="admin-page-preview-heading">
+            <span>Projects page preview</span>
+            <a href="../projects.html" target="_blank" rel="noopener noreferrer">View page</a>
+          </div>
+          <div class="admin-preview-window">
+            <div class="admin-preview-sitebar"><span>Mephisto.net</span><span>FEATURED PROJECTS</span></div>
+            <div id="projects-page-preview" class="admin-preview-content admin-preview-project-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="admin-footer">
+        <a href="../supabase/SETUP.md">Supabase &amp; Netlify setup guide</a>
+      </footer>
+    </main>
+    <script src="../supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="admin.js?v=8"></script>
+  </body>
+</html>

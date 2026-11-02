@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title description">
+  <title id="title">Concept preview for the recovery management desktop app</title>
+  <desc id="description">An illustrative, not captured, desktop dashboard with patient records and recovery progress.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#25111b"/>
+      <stop offset="1" stop-color="#101729"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ff5268"/>
+      <stop offset="1" stop-color="#ff9a79"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="600" rx="28" fill="url(#background)"/>
+  <rect x="28" y="28" width="904" height="544" rx="20" fill="#111a2b" stroke="#ffffff" stroke-opacity=".14"/>
+  <rect x="28" y="28" width="190" height="544" rx="20" fill="#171c2b"/>
+  <rect x="28" y="28" width="190" height="544" rx="20" fill="#171c2b"/>
+  <circle cx="66" cy="72" r="18" fill="url(#accent)"/>
+  <path d="M66 61v22m-8-11h16" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  <text x="96" y="78" fill="#f3f5fa" font-family="Arial,sans-serif" font-size="18" font-weight="700">CareDesk</text>
+  <rect x="48" y="122" width="150" height="42" rx="12" fill="#ff5268" fill-opacity=".17"/>
+  <text x="70" y="149" fill="#ff8995" font-family="Arial,sans-serif" font-size="14">Overview</text>
+  <text x="70" y="207" fill="#9ba9bd" font-family="Arial,sans-serif" font-size="14">Patient records</text>
+  <text x="70" y="251" fill="#9ba9bd" font-family="Arial,sans-serif" font-size="14">Recovery tracking</text>
+  <text x="70" y="295" fill="#9ba9bd" font-family="Arial,sans-serif" font-size="14">Reports</text>
+  <text x="252" y="88" fill="#f3f5fa" font-family="Arial,sans-serif" font-size="25" font-weight="700">Patient overview</text>
+  <text x="252" y="116" fill="#9ba9bd" font-family="Arial,sans-serif" font-size="14">Illustrative interface concept</text>
+  <rect x="252" y="146" width="640" height="120" rx="16" fill="#192337" stroke="#ffffff" stroke-opacity=".1"/>
+  <circle cx="302" cy="205" r="27" fill="#ff5268" fill-opacity=".19"/>
+  <path d="M291 212c2-10 20-10 22 0m-11-11a7 7 0 1 0 0-14 7 7 0 0 0 0 14" fill="none" stroke="#ff8995" stroke-width="3" stroke-linecap="round"/>
+  <text x="348" y="190" fill="#f4f6fb" font-family="Arial,sans-serif" font-size="17" font-weight="700">Recovery plan</text>
+  <text x="348" y="217" fill="#9ba9bd" font-family="Arial,sans-serif" font-size="13">Progress tracking · Patient records</text>
+  <rect x="252" y="288" width="306" height="228" rx="16" fill="#192337" stroke="#ffffff" stroke-opacity=".1"/>
+  <text x="276" y="326" fill="#f4f6fb" font-family="Arial,sans-serif" font-size="16" font-weight="700">Record management</text>
+  <rect x="276" y="350" width="258" height="36" rx="8" fill="#253148"/>
+  <rect x="276" y="398" width="258" height="36" rx="8" fill="#202c40"/>
+  <rect x="276" y="446" width="258" height="36" rx="8" fill="#202c40"/>
+  <rect x="582" y="288" width="310" height="228" rx="16" fill="#192337" stroke="#ffffff" stroke-opacity=".1"/>
+  <text x="606" y="326" fill="#f4f6fb" font-family="Arial,sans-serif" font-size="16" font-weight="700">Progress notes</text>
+  <path d="M610 462c36-18 50-78 85-65s48 39 77 17 45-52 92-65" fill="none" stroke="url(#accent)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M610 478h250M610 380v98" fill="none" stroke="#70819b" stroke-opacity=".45"/>
+  <text x="684" y="548" fill="#b9c3d2" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">CONCEPT PREVIEW · NOT A PRODUCT SCREENSHOT</text>
+</svg>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projects | ManishKannaJ.</title>
+    <meta name="description" content="Explore ManishKannaJ.'s software projects, including a Java recovery management app, a MySQL counselling database, and a sensor-informed irrigation system." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Projects | ManishKannaJ." />
+    <meta property="og:description" content="Case studies and concept previews for Java, MySQL, and IoT projects by ManishKannaJ." />
+    <meta property="og:image" content="assets/images/social-preview.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Projects | ManishKannaJ." />
+    <meta name="twitter:description" content="Case studies and concept previews for Java, MySQL, and IoT projects by ManishKannaJ." />
+    <meta name="twitter:image" content="assets/images/social-preview.svg" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="projects" data-theme="demon">
+    <div class="page-shell">
+      <header class="site-header">
+        <div class="container nav-wrap">
+          <a href="index.html" class="brand" aria-label="Home">
+            <span class="brand-mark"><i class="fab fa-java"></i></span>
+            <span>
+              <span class="brand-name">Mephisto.net</span>
+              <span class="brand-sub">java Full Stack</span>
+            </span>
+          </a>
+
+          <nav class="nav" aria-label="Main navigation">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="about.html" class="nav-link">About</a>
+            <a href="skills.html" class="nav-link">Skills</a>
+            <a href="projects.html" class="nav-link active">Projects</a>
+            <a href="contact.html" class="nav-link">Contact</a>
+          </nav>
+
+          <div class="nav-actions">
+            <div class="theme-picker">
+              <button id="themeToggle" class="theme-toggle" aria-haspopup="true" aria-expanded="false" aria-label="Select color theme"><i class="fa-solid fa-palette" aria-hidden="true"></i><span class="theme-label">Theme</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
+              <div class="theme-menu" role="menu" aria-label="Color themes">
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="classic"><span class="theme-swatch" style="--swatch:#fb4b5a"></span>Classic Dark</button><button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="demon"><span class="theme-swatch" style="--swatch:#ff263f"></span>Red Demon</button>
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="light"><span class="theme-swatch" style="--swatch:#d92336"></span>Light</button><button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="ocean"><span class="theme-swatch" style="--swatch:#18b7d5"></span>Ocean</button>
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="forest"><span class="theme-swatch" style="--swatch:#53c878"></span>Forest</button><button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="violet"><span class="theme-swatch" style="--swatch:#a879ff"></span>Violet</button>
+                <button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="gold"><span class="theme-swatch" style="--swatch:#e3a72f"></span>Gold</button><button class="theme-option" role="menuitemradio" aria-checked="false" data-theme-choice="rose"><span class="theme-swatch" style="--swatch:#fa5d9d"></span>Rose</button>
+              </div>
+            </div>
+            <button class="menu-toggle" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
+              <span></span><span></span><span></span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div class="mobile-menu" id="mobile-menu">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="skills.html">Skills</a>
+        <a href="projects.html">Projects</a>
+        <a href="contact.html">Contact</a>
+      </div>
+
+      <main>
+        <section class="section page-section">
+          <div class="container">
+            <div class="section-head reveal centered">
+              <span class="eyebrow"><i class="fas fa-project-diagram"></i> Portfolio</span>
+              <h2>Projects</h2>
+            </div>
+
+            <div class="project-toolbar">
+              <div class="project-filters" role="group" aria-label="Filter projects by technology">
+                <button class="project-filter active" type="button" aria-pressed="true" data-project-filter="all">All</button>
+                <button class="project-filter" type="button" aria-pressed="false" data-project-filter="frontend">Frontend</button>
+                <button class="project-filter" type="button" aria-pressed="false" data-project-filter="java">Java</button>
+                <button class="project-filter" type="button" aria-pressed="false" data-project-filter="mysql">MySQL</button>
+                <button class="project-filter" type="button" aria-pressed="false" data-project-filter="sql">SQL</button>
+                <button class="project-filter" type="button" aria-pressed="false" data-project-filter="full-stack">Full-Stack</button>
+              </div>
+              <p class="project-data-status" id="project-data-status" role="status" aria-live="polite"></p>
+            </div>
+
+            <div class="projects-grid" id="projects-grid">
+              <article class="project-card reveal" data-project-card data-project-slug="mental-health-recovery" data-technologies="java mysql tkinter">
+                <figure class="project-preview">
+                  <img src="assets/images/project-previews/mental-health.svg" alt="Concept preview, not a product screenshot: patient records and recovery progress dashboard." loading="lazy" />
+                  <figcaption>Concept preview · not a product screenshot</figcaption>
+                </figure>
+                <span class="project-tag">Desktop App</span>
+                <h3>Mental Health &amp; Recovery Management System</h3>
+                <div class="tag-row">
+                  <span class="tag">Java</span>
+                  <span class="tag">MySQL</span>
+                  <span class="tag">Tkinter</span>
+                </div>
+                <p>A desktop application for managing patient records, recovery tracking, and mental health data with full CRUD operations.</p>
+                <details class="case-study">
+                  <summary>Read case study</summary>
+                  <div class="case-study-content">
+                    <h4>Challenge</h4><p>Keep patient records and recovery progress organized in one practical workflow.</p>
+                    <h4>Approach</h4><p>Use create, read, update, and delete operations to manage records and track recovery progress.</p>
+                    <h4>Project outcome</h4><p>A desktop workflow for maintaining patient information and recovery records.</p>
+                  </div>
+                </details>
+                <div class="project-metrics" data-project-metrics>GitHub metrics will appear when a repository is configured.</div>
+                <div class="project-actions" data-project-actions>
+                  <span class="project-unavailable">Repository and live demo not configured</span>
+                </div>
+              </article>
+
+              <article class="project-card reveal" data-project-card data-project-slug="recovery-counselling-database" data-technologies="mysql sql reports">
+                <figure class="project-preview">
+                  <img src="assets/images/project-previews/counselling.svg" alt="Concept preview, not a product screenshot: counselling database records and reports dashboard." loading="lazy" />
+                  <figcaption>Concept preview · not a product screenshot</figcaption>
+                </figure>
+                <span class="project-tag">Database Project</span>
+                <h3>Addiction Recovery and Behavioural Counselling System</h3>
+                <div class="tag-row">
+                  <span class="tag">MySQL</span>
+                  <span class="tag">SQL</span>
+                  <span class="tag">Reports</span>
+                </div>
+                <p>A SQL-focused database solution for counselling, patient progress tracking, and program reporting workflows.</p>
+                <details class="case-study">
+                  <summary>Read case study</summary>
+                  <div class="case-study-content">
+                    <h4>Challenge</h4><p>Organize counselling information and patient progress for clearer program reporting.</p>
+                    <h4>Approach</h4><p>Use a relational database and SQL reporting workflows to support counselling and progress tracking.</p>
+                    <h4>Project outcome</h4><p>A database-focused solution for counselling workflows and program reports.</p>
+                  </div>
+                </details>
+                <div class="project-metrics" data-project-metrics>GitHub metrics will appear when a repository is configured.</div>
+                <div class="project-actions" data-project-actions>
+                  <span class="project-unavailable">Repository and live demo not configured</span>
+                </div>
+              </article>
+
+              <article class="project-card reveal" data-project-card data-project-slug="smart-irrigation" data-technologies="esp32 iot api">
+                <figure class="project-preview">
+                  <img src="assets/images/project-previews/irrigation.svg" alt="Concept preview, not a product screenshot: sensor-informed irrigation dashboard." loading="lazy" />
+                  <figcaption>Concept preview · not a product screenshot</figcaption>
+                </figure>
+                <span class="project-tag">IoT</span>
+                <h3>AI-Based Smart Irrigation System</h3>
+                <div class="tag-row">
+
+                </div>
+                <p>An intelligent irrigation system using weather prediction and sensor-based automation to reduce water waste and improve efficiency.</p>
+                <details class="case-study">
+                  <summary>Read case study</summary>
+                  <div class="case-study-content">
+                    <h4>Challenge</h4><p>Reduce water waste by making irrigation decisions with sensor readings and weather information.</p>
+                    <h4>Approach</h4><p>Combine ESP32 sensor data with weather information to support automated irrigation decisions.</p>
+                    <h4>Project outcome</h4><p>An IoT project concept focused on sensor-aware irrigation and more efficient water use.</p>
+                  </div>
+                </details>
+                <div class="project-metrics" data-project-metrics>GitHub metrics will appear when a repository is configured.</div>
+                <div class="project-actions" data-project-actions>
+                  <span class="project-unavailable">Repository and live demo not configured</span>
+                </div>
+              </article>
+            </div>
+            <p class="projects-empty" id="projects-empty" hidden>No projects match this technology filter.</p>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="container footer-wrap">
+          <div class="footer-brand">
+            <span class="brand-mark small"><i class="fab fa-java"></i></span>
+            <span>Mephisto.net</span>
+          </div>
+
+          <div class="footer-links">
+            <a href="index.html">Home</a>
+            <a href="about.html">About</a>
+            <a href="skills.html">Skills</a>
+            <a href="projects.html">Projects</a>
+            <a href="contact.html">Contact</a>
+          </div>
+
+          <p class="footer-copy">© 2026 ManishKannaJ. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+
+    <div class="floating-social" data-social-links>
+      <a href="https://github.com/JManishkanna" hidden data-github-profile-link target="_blank" rel="noopener noreferrer" aria-label="GitHub" class="github"><i class="fab fa-github"></i></a>
+      <a href="https://www.linkedin.com/in/manish-kanna-j-604b88298/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" class="linkedin"><i class="fab fa-linkedin-in"></i></a>
+      <a href="https://www.instagram.com/am_mephisto_19" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="instagram"><i class="fab fa-instagram"></i></a>
+      <a href="https://leetcode.com/u/ManishKannaJ/" target="_blank" rel="noopener noreferrer" aria-label="LeetCode" class="leetcode"><i class="fas fa-code"></i></a>
+    </div>
+
+    <button id="scrollTopBtn" class="scroll-top" aria-label="Scroll to top">
+      <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+    <script src="portfolio.js?v=7"></script>
+  </body>
+</html>
