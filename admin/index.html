@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Portfolio Admin | ManishKannaJ.</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg" />
+    <link rel="shortcut icon" href="../assets/images/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="../assets/images/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../styles.css" />
     <link rel="stylesheet" href="admin.css?v=19" />
   </head>
@@ -210,7 +213,7 @@
             </form>
           </div>
           <details class="admin-preview-disclosure">
-            <summary><i class="fas fa-eye" aria-hidden="true"></i><span class="admin-disclosure-open-label">Show skills page preview</span><span class="admin-disclosure-close-label">Hide skills page preview</span></summary>
+            <summary><i class="fas fa-eye" aria-hidden="true"></i><span class="admin-disclosure-open-label">Show skills page preview</span><span class="admin-disclosure-close-label">Hide skills preview</span></summary>
             <div class="admin-page-preview">
               <div class="admin-page-preview-heading">
                 <span>Skills page preview</span>
@@ -286,233 +289,233 @@
               <h2 id="editor-heading">Project editor</h2>
               <form id="project-form" class="admin-form">
                 <div class="admin-field-grid">
-                <div class="admin-field">
-                  <label for="project-title">Project title</label>
-                  <input id="project-title" name="title" maxlength="120" required />
-                </div>
-                <div class="admin-field">
-                  <label for="project-slug">URL slug</label>
-                  <input id="project-slug" name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="80" required />
-                </div>
-                <div class="admin-field">
-                  <label for="project-category">Category</label>
-                  <input id="project-category" name="category" maxlength="60" required />
-                </div>
-                <div class="admin-field">
-                  <label for="project-order">Display order</label>
-                  <input id="project-order" name="display_order" type="number" min="0" step="1" value="0" required />
-                </div>
-                <div class="admin-field admin-field-wide">
-                  <label for="project-description">Short description</label>
-                  <textarea id="project-description" name="description" rows="3" maxlength="500" required></textarea>
-                </div>
-                <div class="admin-field admin-field-wide">
-                  <label for="project-technologies">Technologies, comma separated</label>
-                  <input id="project-technologies" name="technologies" maxlength="250" placeholder="Java, MySQL, API" />
-                </div>
-                <div class="admin-field admin-field-wide">
-                  <label for="project-challenge">Case study: challenge</label>
-                  <textarea id="project-challenge" name="challenge" rows="2" maxlength="1000"></textarea>
-                </div>
-                <div class="admin-field admin-field-wide">
-                  <label for="project-approach">Case study: approach</label>
-                  <textarea id="project-approach" name="approach" rows="2" maxlength="1000"></textarea>
-                </div>
-                <div class="admin-field admin-field-wide">
-                  <label for="project-outcome">Case study: outcome</label>
-                  <textarea id="project-outcome" name="outcome" rows="2" maxlength="1000"></textarea>
-                </div>
-                <div class="admin-field">
-                  <label for="project-github-owner">GitHub owner</label>
-                  <input id="project-github-owner" name="github_owner" maxlength="39" />
-                </div>
-                <div class="admin-field">
-                  <label for="project-github-repo">GitHub repository</label>
-                  <input id="project-github-repo" name="github_repo" maxlength="100" />
-                </div>
-                <div class="admin-field admin-field-wide">
-                  <label for="project-demo-url">Live demo URL (optional)</label>
-                  <input id="project-demo-url" name="live_demo_url" type="url" maxlength="500" placeholder="https://" />
-                </div>
-                <div class="admin-field">
-                  <label for="project-image">Upload screenshot (PNG, JPEG, or WebP; max 5 MB)</label>
-                  <input id="project-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" />
-                </div>
-                <div class="admin-field">
-                  <label for="project-preview-type">Preview type</label>
-                  <select id="project-preview-type" name="preview_type">
-                    <option value="screenshot">Actual screenshot</option>
-                    <option value="concept">Concept illustration</option>
-                  </select>
-                </div>
-                <div class="admin-field admin-field-wide">
-                  <label for="project-image-url">Screenshot or preview image URL</label>
-                  <input id="project-image-url" name="preview_image_url" type="text" inputmode="url" maxlength="1000" placeholder="Upload an image or paste an HTTPS URL" />
-                </div>
-              </div>
-              <div class="admin-form-actions">
-                <button class="btn btn-primary" type="submit">Save project</button>
-                <button id="delete-project" class="btn btn-secondary" type="button" disabled>Delete project</button>
-              </div>
-            </form>
-          </section>
-        </div>
-        <details class="admin-preview-disclosure">
-          <summary><i class="fas fa-eye" aria-hidden="true"></i><span class="admin-disclosure-open-label">Show projects page preview</span><span class="admin-disclosure-close-label">Hide projects page preview</span></summary>
-          <div class="admin-page-preview">
-            <div class="admin-page-preview-heading">
-              <span>Projects page preview</span>
-              <a href="../projects.html" target="_blank" rel="noopener noreferrer">View page</a>
-            </div>
-            <div class="admin-preview-window">
-              <div class="admin-preview-sitebar"><span>Mephisto.net</span><span>FEATURED PROJECTS</span></div>
-              <div id="projects-page-preview" class="admin-preview-content admin-preview-project-grid"></div>
-            </div>
-          </div>
-        </details>
-      </section>
-
-      <section class="admin-settings" id="chat-inbox" data-admin-section="chat-inbox" aria-labelledby="chat-inbox-heading">
-        <div class="admin-section-heading">
-          <div>
-            <h2 id="chat-inbox-heading">Chat inbox</h2>
-            <p class="admin-help">Private one-to-one visitor conversations and invite-only group rooms. This inbox is visible only to allowlisted admins.</p>
-          </div>
-          <button id="refresh-chat-inbox" class="btn btn-secondary" type="button">Refresh</button>
-        </div>
-        <p id="chat-inbox-status" class="admin-status" role="status" aria-live="polite">Run supabase/chat-migration.sql to enable visitor chat.</p>
-        <h3 class="admin-chat-section-title">Private visitor conversations</h3>
-        <div class="admin-chatbot-controls">
-          <p id="admin-chatbot-status" class="admin-help" role="status" aria-live="polite">Loading automatic reply settings…</p>
-          <button id="admin-chatbot-toggle" class="btn btn-secondary" type="button" disabled>Loading…</button>
-        </div>
-        <details class="admin-chatbot-rules">
-          <summary class="admin-disclosure-summary" aria-labelledby="admin-chatbot-rules-heading">
-            <span><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> <strong id="admin-chatbot-rules-heading">Automatic reply rules</strong></span>
-            <small>Manage greetings, keyword replies, and fallback messages</small>
-          </summary>
-          <div class="admin-chatbot-rules-content">
-          <div>
-            <p class="admin-help">When automatic replies are on, new conversations get the welcome reply. Later messages are matched against these keywords. Higher priority numbers win; longer phrases win ties. The <code>*</code> rule is used when nothing else matches.</p>
-            <p class="admin-help admin-chatbot-note">The saved <code>__greeting__</code> and <code>*</code> rules are reserved: you can edit their replies, but not delete them.</p>
-          </div>
-          <form id="admin-chatbot-rule-form" class="admin-chatbot-rule-form">
-            <h5 class="admin-chatbot-form-heading">Add a reply rule</h5>
-            <div>
-              <label for="admin-chatbot-keyword">Keyword or phrase</label>
-              <input id="admin-chatbot-keyword" name="keyword" maxlength="80" placeholder="e.g. pricing" required />
-            </div>
-            <div>
-              <label for="admin-chatbot-reply">Automatic reply</label>
-              <textarea id="admin-chatbot-reply" name="reply_text" rows="3" maxlength="2000" placeholder="Write the response visitors should receive" required></textarea>
-            </div>
-            <div class="admin-chatbot-rule-form-actions">
-              <label for="admin-chatbot-priority">Priority (higher wins)</label>
-              <input id="admin-chatbot-priority" name="priority" type="number" step="1" value="0" aria-describedby="admin-chatbot-priority-help" />
-              <small id="admin-chatbot-priority-help">Used when multiple rules match.</small>
-              <button class="btn btn-primary" type="submit">Add reply rule</button>
-            </div>
-          </form>
-          <p id="admin-chatbot-rules-status" class="admin-status" role="status" aria-live="polite"></p>
-          <div id="admin-chatbot-rules-list" class="admin-chatbot-rules-list" aria-label="Saved automatic reply rules"></div>
-          </div>
-        </details>
-        <div id="admin-chat-layout" class="admin-chat-layout">
-          <div id="chat-conversation-list" class="admin-chat-conversations" aria-label="Chat conversations"></div>
-          <div class="admin-chat-thread">
-            <div class="admin-chat-thread-heading">
-              <button id="admin-chat-back" class="admin-chat-back" type="button" aria-label="Back to visitors" hidden>
-                <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                <span>Visitors</span>
-              </button>
-              <span id="admin-chat-visitor-avatar" class="admin-chat-visitor-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
-              <h3 id="chat-thread-heading">Select a conversation</h3>
-              <span id="admin-chat-thread-presence" class="chat-online-indicator" hidden></span>
-              <details id="admin-visitor-profile" class="admin-visitor-profile" hidden>
-                <summary><i class="fas fa-user-pen" aria-hidden="true"></i> Edit visitor profile</summary>
-                <form id="admin-visitor-profile-form" class="admin-visitor-profile-form">
-                  <p class="admin-help">Visitor ID: <code id="admin-visitor-profile-id"></code></p>
-                  <label for="admin-visitor-display-name">Display name</label>
-                  <input id="admin-visitor-display-name" name="display_name" maxlength="40" required />
-                  <label for="admin-visitor-profile-image-file">Profile photo</label>
-                  <input id="admin-visitor-profile-image-file" name="profile_image" type="file" accept="image/jpeg,image/png,image/webp" />
-                  <p class="admin-help">JPEG, PNG, or WebP up to 2 MB.</p>
-                  <div class="admin-visitor-profile-photo">
-                    <span id="admin-visitor-profile-image-placeholder" aria-hidden="true"><i class="fas fa-user"></i></span>
-                    <img id="admin-visitor-profile-image-preview" alt="Visitor profile photo preview" hidden />
-                    <span id="admin-visitor-profile-image-name"></span>
+                  <div class="admin-field">
+                    <label for="project-title">Project title</label>
+                    <input id="project-title" name="title" maxlength="120" required />
                   </div>
-                  <button class="btn btn-primary" type="submit">Save profile</button>
-                  <button id="admin-visitor-profile-image-remove" class="btn btn-secondary" type="button" hidden>Remove profile photo</button>
-                  <p id="admin-visitor-profile-status" class="admin-status" role="status" aria-live="polite"></p>
-                </form>
-              </details>
-            </div>
-            <div id="admin-chat-messages" class="admin-chat-messages" role="log" aria-live="polite" aria-label="Selected conversation messages"></div>
-            <form id="admin-chat-reply-form" class="admin-chat-reply" hidden>
-              <label class="sr-only" for="admin-chat-reply">Reply to visitor</label>
-              <textarea id="admin-chat-reply" name="message" rows="3" maxlength="2000" placeholder="Write a reply…"></textarea>
-              <label class="admin-chat-file-button" for="admin-chat-file"><i class="fas fa-paperclip" aria-hidden="true"></i> Choose attachment</label>
-              <input id="admin-chat-file" class="admin-chat-file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-              <span id="admin-chat-file-name" class="admin-chat-file-name" aria-live="polite"></span>
-              <button class="btn btn-primary" type="submit">Send reply</button>
-            </form>
+                  <div class="admin-field">
+                    <label for="project-slug">URL slug</label>
+                    <input id="project-slug" name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="80" required />
+                  </div>
+                  <div class="admin-field">
+                    <label for="project-category">Category</label>
+                    <input id="project-category" name="category" maxlength="60" required />
+                  </div>
+                  <div class="admin-field">
+                    <label for="project-order">Display order</label>
+                    <input id="project-order" name="display_order" type="number" min="0" step="1" value="0" required />
+                  </div>
+                  <div class="admin-field admin-field-wide">
+                    <label for="project-description">Short description</label>
+                    <textarea id="project-description" name="description" rows="3" maxlength="500" required></textarea>
+                  </div>
+                  <div class="admin-field admin-field-wide">
+                    <label for="project-technologies">Technologies, comma separated</label>
+                    <input id="project-technologies" name="technologies" maxlength="250" placeholder="Java, MySQL, API" />
+                  </div>
+                  <div class="admin-field admin-field-wide">
+                    <label for="project-challenge">Case study: challenge</label>
+                    <textarea id="project-challenge" name="challenge" rows="2" maxlength="1000"></textarea>
+                  </div>
+                  <div class="admin-field admin-field-wide">
+                    <label for="project-approach">Case study: approach</label>
+                    <textarea id="project-approach" name="approach" rows="2" maxlength="1000"></textarea>
+                  </div>
+                  <div class="admin-field admin-field-wide">
+                    <label for="project-outcome">Case study: outcome</label>
+                    <textarea id="project-outcome" name="outcome" rows="2" maxlength="1000"></textarea>
+                  </div>
+                  <div class="admin-field">
+                    <label for="project-github-owner">GitHub owner</label>
+                    <input id="project-github-owner" name="github_owner" maxlength="39" />
+                  </div>
+                  <div class="admin-field">
+                    <label for="project-github-repo">GitHub repository</label>
+                    <input id="project-github-repo" name="github_repo" maxlength="100" />
+                  </div>
+                  <div class="admin-field admin-field-wide">
+                    <label for="project-demo-url">Live demo URL (optional)</label>
+                    <input id="project-demo-url" name="live_demo_url" type="url" maxlength="500" placeholder="https://" />
+                  </div>
+                  <div class="admin-field">
+                    <label for="project-image">Upload screenshot (PNG, JPEG, or WebP; max 5 MB)</label>
+                    <input id="project-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" />
+                  </div>
+                  <div class="admin-field">
+                    <label for="project-preview-type">Preview type</label>
+                    <select id="project-preview-type" name="preview_type">
+                      <option value="screenshot">Actual screenshot</option>
+                      <option value="concept">Concept illustration</option>
+                    </select>
+                  </div>
+                  <div class="admin-field admin-field-wide">
+                    <label for="project-image-url">Screenshot or preview image URL</label>
+                    <input id="project-image-url" name="preview_image_url" type="text" inputmode="url" maxlength="1000" placeholder="Upload an image or paste an HTTPS URL" />
+                  </div>
+                </div>
+                <div class="admin-form-actions">
+                  <button class="btn btn-primary" type="submit">Save project</button>
+                  <button id="delete-project" class="btn btn-secondary" type="button" disabled>Delete project</button>
+                </div>
+              </form>
+            </section>
           </div>
-        </div>
-
-        <details class="admin-chat-extra">
-          <summary class="admin-disclosure-summary">
-            <span><i class="fas fa-users" aria-hidden="true"></i> <strong>Group rooms</strong></span>
-            <small>Manage invite-only group conversations</small>
-          </summary>
-          <div class="admin-chat-extra-content">
-            <div class="admin-group-heading">
-              <div>
-                <h3>Group rooms</h3>
-                <p class="admin-help">Room UUIDs are invite codes. Share them only with people you want to invite.</p>
+          <details class="admin-preview-disclosure">
+            <summary><i class="fas fa-eye" aria-hidden="true"></i><span class="admin-disclosure-open-label">Show projects page preview</span><span class="admin-disclosure-close-label">Hide projects preview</span></summary>
+            <div class="admin-page-preview">
+              <div class="admin-page-preview-heading">
+                <span>Projects page preview</span>
+                <a href="../projects.html" target="_blank" rel="noopener noreferrer">View page</a>
               </div>
-              <form id="chat-group-create-form" class="admin-inline-form admin-group-create-form">
-                <label class="sr-only" for="chat-group-name">New room name</label>
-                <input id="chat-group-name" name="name" type="text" maxlength="80" placeholder="New room name" required />
-                <button class="btn btn-secondary" type="submit">Create room</button>
+              <div class="admin-preview-window">
+                <div class="admin-preview-sitebar"><span>Mephisto.net</span><span>FEATURED PROJECTS</span></div>
+                <div id="projects-page-preview" class="admin-preview-content admin-preview-project-grid"></div>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section class="admin-settings" id="chat-inbox" data-admin-section="chat-inbox" aria-labelledby="chat-inbox-heading">
+          <div class="admin-section-heading">
+            <div>
+              <h2 id="chat-inbox-heading">Chat inbox</h2>
+              <p class="admin-help">Private one-to-one visitor conversations and invite-only group rooms. This inbox is visible only to allowlisted admins.</p>
+            </div>
+            <button id="refresh-chat-inbox" class="btn btn-secondary" type="button">Refresh</button>
+          </div>
+          <p id="chat-inbox-status" class="admin-status" role="status" aria-live="polite">Run supabase/chat-migration.sql to enable visitor chat.</p>
+          <h3 class="admin-chat-section-title">Private visitor conversations</h3>
+          <div class="admin-chatbot-controls">
+            <p id="admin-chatbot-status" class="admin-help" role="status" aria-live="polite">Loading automatic reply settings…</p>
+            <button id="admin-chatbot-toggle" class="btn btn-secondary" type="button" disabled>Loading…</button>
+          </div>
+          <details class="admin-chatbot-rules">
+            <summary class="admin-disclosure-summary" aria-labelledby="admin-chatbot-rules-heading">
+              <span><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> <strong id="admin-chatbot-rules-heading">Automatic reply rules</strong></span>
+              <small>Manage greetings, keyword replies, and fallback messages</small>
+            </summary>
+            <div class="admin-chatbot-rules-content">
+              <div>
+                <p class="admin-help">When automatic replies are on, new conversations get the welcome reply. Later messages are matched against these keywords. Higher priority numbers win; longer phrases match first.</p>
+                <p class="admin-help admin-chatbot-note">The saved <code>__greeting__</code> and <code>*</code> rules are reserved: you can edit their replies, but not delete them.</p>
+              </div>
+              <form id="admin-chatbot-rule-form" class="admin-chatbot-rule-form">
+                <h5 class="admin-chatbot-form-heading">Add a reply rule</h5>
+                <div>
+                  <label for="admin-chatbot-keyword">Keyword or phrase</label>
+                  <input id="admin-chatbot-keyword" name="keyword" maxlength="80" placeholder="e.g. pricing" required />
+                </div>
+                <div>
+                  <label for="admin-chatbot-reply">Automatic reply</label>
+                  <textarea id="admin-chatbot-reply" name="reply_text" rows="3" maxlength="2000" placeholder="Write the response visitors should receive" required></textarea>
+                </div>
+                <div class="admin-chatbot-rule-form-actions">
+                  <label for="admin-chatbot-priority">Priority (higher wins)</label>
+                  <input id="admin-chatbot-priority" name="priority" type="number" step="1" value="0" aria-describedby="admin-chatbot-priority-help" />
+                  <small id="admin-chatbot-priority-help">Used when multiple rules match.</small>
+                  <button class="btn btn-primary" type="submit">Add reply rule</button>
+                </div>
+              </form>
+              <p id="admin-chatbot-rules-status" class="admin-status" role="status" aria-live="polite"></p>
+              <div id="admin-chatbot-rules-list" class="admin-chatbot-rules-list" aria-label="Saved automatic reply rules"></div>
+            </div>
+          </details>
+          <div id="admin-chat-layout" class="admin-chat-layout">
+            <div id="chat-conversation-list" class="admin-chat-conversations" aria-label="Chat conversations"></div>
+            <div class="admin-chat-thread">
+              <div class="admin-chat-thread-heading">
+                <button id="admin-chat-back" class="admin-chat-back" type="button" aria-label="Back to visitors" hidden>
+                  <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                  <span>Visitors</span>
+                </button>
+                <span id="admin-chat-visitor-avatar" class="admin-chat-visitor-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
+                <h3 id="chat-thread-heading">Select a conversation</h3>
+                <span id="admin-chat-thread-presence" class="chat-online-indicator" hidden></span>
+                <details id="admin-visitor-profile" class="admin-visitor-profile" hidden>
+                  <summary><i class="fas fa-user-pen" aria-hidden="true"></i> Edit visitor profile</summary>
+                  <form id="admin-visitor-profile-form" class="admin-visitor-profile-form">
+                    <p class="admin-help">Visitor ID: <code id="admin-visitor-profile-id"></code></p>
+                    <label for="admin-visitor-display-name">Display name</label>
+                    <input id="admin-visitor-display-name" name="display_name" maxlength="40" required />
+                    <label for="admin-visitor-profile-image-file">Profile photo</label>
+                    <input id="admin-visitor-profile-image-file" name="profile_image" type="file" accept="image/jpeg,image/png,image/webp" />
+                    <p class="admin-help">JPEG, PNG, or WebP up to 2 MB.</p>
+                    <div class="admin-visitor-profile-photo">
+                      <span id="admin-visitor-profile-image-placeholder" aria-hidden="true"><i class="fas fa-user"></i></span>
+                      <img id="admin-visitor-profile-image-preview" alt="Visitor profile photo preview" hidden />
+                      <span id="admin-visitor-profile-image-name"></span>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Save profile</button>
+                    <button id="admin-visitor-profile-image-remove" class="btn btn-secondary" type="button" hidden>Remove profile photo</button>
+                    <p id="admin-visitor-profile-status" class="admin-status" role="status" aria-live="polite"></p>
+                  </form>
+                </details>
+              </div>
+              <div id="admin-chat-messages" class="admin-chat-messages" role="log" aria-live="polite" aria-label="Selected conversation messages"></div>
+              <form id="admin-chat-reply-form" class="admin-chat-reply" hidden>
+                <label class="sr-only" for="admin-chat-reply">Reply to visitor</label>
+                <textarea id="admin-chat-reply" name="message" rows="3" maxlength="2000" placeholder="Write a reply…"></textarea>
+                <label class="admin-chat-file-button" for="admin-chat-file"><i class="fas fa-paperclip" aria-hidden="true"></i> Choose attachment</label>
+                <input id="admin-chat-file" class="admin-chat-file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <span id="admin-chat-file-name" class="admin-chat-file-name" aria-live="polite"></span>
+                <button class="btn btn-primary" type="submit">Send reply</button>
               </form>
             </div>
-            <p id="chat-group-status" class="admin-status" role="status" aria-live="polite"></p>
-            <div class="admin-group-layout">
-              <div id="chat-group-list" class="admin-chat-conversations" aria-label="Group rooms"></div>
-              <div class="admin-chat-thread admin-group-thread">
-                <h3 id="chat-group-thread-heading">Select a group room</h3>
-                <div class="admin-group-management">
-                  <div class="admin-group-management-actions">
-                    <p class="admin-help">Room invite ID: <code id="chat-group-id">Select a room</code> <button id="copy-chat-group-id" class="admin-copy-group-id" type="button" disabled>Copy ID</button></p>
-                    <button id="delete-chat-group" class="admin-delete-group" type="button" hidden>Delete room</button>
-                  </div>
-                  <div>
-                    <h4>Members</h4>
-                    <div id="chat-group-members" class="admin-group-members"></div>
-                  </div>
+          </div>
+
+          <details class="admin-chat-extra">
+            <summary class="admin-disclosure-summary">
+              <span><i class="fas fa-users" aria-hidden="true"></i> <strong>Group rooms</strong></span>
+              <small>Manage invite-only group conversations</small>
+            </summary>
+            <div class="admin-chat-extra-content">
+              <div class="admin-group-heading">
+                <div>
+                  <h3>Group rooms</h3>
+                  <p class="admin-help">Room UUIDs are invite codes. Share them only with people you want to invite.</p>
                 </div>
-                <div id="admin-group-messages" class="admin-chat-messages" role="log" aria-live="polite" aria-label="Selected group messages"></div>
-                <form id="admin-group-reply-form" class="admin-chat-reply" hidden>
-                  <label class="sr-only" for="admin-group-reply">Message the group</label>
-                  <textarea id="admin-group-reply" name="message" rows="3" maxlength="2000" placeholder="Write a group message…"></textarea>
-                  <label class="admin-chat-file-button" for="admin-group-file"><i class="fas fa-paperclip" aria-hidden="true"></i> Choose attachment</label>
-                  <input id="admin-group-file" class="admin-chat-file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
-                  <span id="admin-group-file-name" class="admin-chat-file-name" aria-live="polite"></span>
-                  <button class="btn btn-primary" type="submit">Send to group</button>
+                <form id="chat-group-create-form" class="admin-inline-form admin-group-create-form">
+                  <label class="sr-only" for="chat-group-name">New room name</label>
+                  <input id="chat-group-name" name="name" type="text" maxlength="80" placeholder="New room name" required />
+                  <button class="btn btn-secondary" type="submit">Create room</button>
                 </form>
               </div>
+              <p id="chat-group-status" class="admin-status" role="status" aria-live="polite"></p>
+              <div class="admin-group-layout">
+                <div id="chat-group-list" class="admin-chat-conversations" aria-label="Group rooms"></div>
+                <div class="admin-chat-thread admin-group-thread">
+                  <h3 id="chat-group-thread-heading">Select a group room</h3>
+                  <div class="admin-group-management">
+                    <div class="admin-group-management-actions">
+                      <p class="admin-help">Room invite ID: <code id="chat-group-id">Select a room</code> <button id="copy-chat-group-id" class="admin-copy-group-id" type="button" disabled>Copy ID</button></p>
+                      <button id="delete-chat-group" class="admin-delete-group" type="button" hidden>Delete room</button>
+                    </div>
+                    <div>
+                      <h4>Members</h4>
+                      <div id="chat-group-members" class="admin-group-members"></div>
+                    </div>
+                  </div>
+                  <div id="admin-group-messages" class="admin-chat-messages" role="log" aria-live="polite" aria-label="Selected group messages"></div>
+                  <form id="admin-group-reply-form" class="admin-chat-reply" hidden>
+                    <label class="sr-only" for="admin-group-reply">Message the group</label>
+                    <textarea id="admin-group-reply" name="message" rows="3" maxlength="2000" placeholder="Write a group message…"></textarea>
+                    <label class="admin-chat-file-button" for="admin-group-file"><i class="fas fa-paperclip" aria-hidden="true"></i> Choose attachment</label>
+                    <input id="admin-group-file" class="admin-chat-file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                    <span id="admin-group-file-name" class="admin-chat-file-name" aria-live="polite"></span>
+                    <button class="btn btn-primary" type="submit">Send to group</button>
+                  </form>
+                </div>
+              </div>
             </div>
-          </div>
-        </details>
-      </section>
+          </details>
+        </section>
 
-      <footer class="admin-footer">
-        <a href="../supabase/SETUP.md">Supabase &amp; Netlify setup guide</a>
-      </footer>
-    </main>
-    <script src="../supabase-config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="admin.js?v=18"></script>
-  </body>
+        <footer class="admin-footer">
+          <a href="../supabase/SETUP.md">Supabase &amp; Netlify setup guide</a>
+        </footer>
+      </main>
+      <script src="../supabase-config.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+      <script src="admin.js?v=18"></script>
+    </body>
 </html>
