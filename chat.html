@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="chat.css?v=8" />
+    <link rel="stylesheet" href="chat.css?v=9" />
   </head>
   <body data-page="chat" data-theme="demon">
     <div class="page-shell">
@@ -158,6 +158,7 @@
                     </div>
                     <span class="chat-thread-secure"><i class="fas fa-lock" aria-hidden="true"></i><span>Private</span></span>
                   </div>
+                  <div id="chat-group-presence-list" class="chat-group-presence-list" aria-label="Group members online status" hidden></div>
                   <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages"></div>
                   <form id="chat-message-form" class="chat-message-form">
                     <label class="sr-only" for="chat-message">Your message</label>
@@ -194,6 +195,6 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
-    <script src="chat.js?v=9"></script>
+    <script src="chat.js?v=10"></script>
   </body>
 </html>

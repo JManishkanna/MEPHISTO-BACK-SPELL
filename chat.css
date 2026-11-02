@@ -609,6 +609,45 @@
   box-shadow: none;
 }
 
+.chat-group-presence-list:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-height: 78px;
+  overflow-y: auto;
+  padding: 0 16px 8px;
+}
+
+.chat-group-presence-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.chat-group-presence-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.chat-group-presence-member.is-online {
+  border-color: color-mix(in srgb, #54cf8a 30%, var(--border));
+  color: #54cf8a;
+}
+
+.chat-group-presence-member.is-online .chat-group-presence-dot {
+  background: #54cf8a;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #54cf8a 16%, transparent);
+}
+
 .chat-thread-secure {
   display: flex;
   align-items: center;

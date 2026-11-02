@@ -19,6 +19,7 @@
   const threadHeading = document.getElementById("chat-thread-heading");
   const threadAvatar = document.getElementById("chat-thread-avatar");
   const chatPresence = document.getElementById("chat-presence");
+  const groupPresenceList = document.getElementById("chat-group-presence-list");
   const profileForm = document.getElementById("chat-profile-form");
   const profileNameInput = document.getElementById("chat-profile-display-name");
   const profileSettings = document.querySelector(".chat-profile-settings");
@@ -62,6 +63,8 @@
     threadHeading.textContent = name;
     chatPresence.dataset.online = "false";
     chatPresence.lastChild.textContent = isGroup ? " Group conversation" : " Chat privately";
+    groupPresenceList.hidden = true;
+    groupPresenceList.replaceChildren();
     threadAvatar.classList.toggle("chat-group-avatar", isGroup);
     threadAvatar.classList.toggle("chat-direct-avatar", !isGroup);
     const icon = document.createElement("i");
@@ -314,15 +317,31 @@
       if (!requestedGroupId) {
         return;
       }
-      const { data, error } = await client.rpc("count_chat_group_online", {
+      const { data, error } = await client.rpc("get_chat_group_presence", {
         p_group_id: requestedGroupId
       });
       if (error) {
         throw error;
       }
       if (activeChatType === "group" && activeGroup?.id === requestedGroupId) {
-        chatPresence.dataset.online = String(data > 0);
-        chatPresence.lastChild.textContent = ` ${data} online`;
+        const members = data || [];
+        const onlineCount = members.filter((member) => member.is_online).length;
+        chatPresence.dataset.online = String(onlineCount > 0);
+        chatPresence.lastChild.textContent = ` ${onlineCount} online`;
+        groupPresenceList.replaceChildren();
+        members.forEach((member) => {
+          const item = document.createElement("span");
+          item.className = `chat-group-presence-member${member.is_online ? " is-online" : ""}`;
+          item.setAttribute("aria-label", `${member.display_name}: ${member.is_online ? "online" : "offline"}`);
+          const dot = document.createElement("span");
+          dot.className = "chat-group-presence-dot";
+          dot.setAttribute("aria-hidden", "true");
+          const name = document.createElement("span");
+          name.textContent = member.display_name;
+          item.append(dot, name);
+          groupPresenceList.append(item);
+        });
+        groupPresenceList.hidden = members.length === 0;
       }
     } catch (error) {
       console.error("Could not refresh chat presence:", error);

@@ -1,6 +1,62 @@
 alter table public.chat_messages
   add column if not exists is_bot boolean not null default false;
 
+create table if not exists public.chat_bot_settings (
+  id boolean primary key default true check (id),
+  enabled boolean not null default true
+);
+
+alter table public.chat_bot_settings enable row level security;
+revoke all on public.chat_bot_settings from public, anon, authenticated;
+
+insert into public.chat_bot_settings (id, enabled)
+values (true, true)
+on conflict (id) do nothing;
+
+create or replace function public.get_chatbot_enabled()
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or not public.is_portfolio_admin() then
+    raise exception 'Only admins can inspect chatbot settings.' using errcode = '42501';
+  end if;
+
+  return coalesce((select enabled from public.chat_bot_settings where id), false);
+end;
+$$;
+
+revoke all on function public.get_chatbot_enabled() from public, anon;
+grant execute on function public.get_chatbot_enabled() to authenticated;
+
+create or replace function public.set_chatbot_enabled(p_enabled boolean)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or not public.is_portfolio_admin() then
+    raise exception 'Only admins can change chatbot settings.' using errcode = '42501';
+  end if;
+  if p_enabled is null then
+    raise exception 'Choose whether automatic replies should be enabled.' using errcode = '22023';
+  end if;
+
+  insert into public.chat_bot_settings (id, enabled)
+  values (true, p_enabled)
+  on conflict (id) do update set enabled = excluded.enabled;
+
+  return p_enabled;
+end;
+$$;
+
+revoke all on function public.set_chatbot_enabled(boolean) from public, anon;
+grant execute on function public.set_chatbot_enabled(boolean) to authenticated;
+
 drop policy if exists "Visitors and admins can send chat messages" on public.chat_messages;
 create policy "Visitors and admins can send chat messages"
 on public.chat_messages for insert to authenticated
@@ -25,6 +81,10 @@ security definer
 set search_path = ''
 as $$
 begin
+  if not coalesce((select enabled from public.chat_bot_settings where id), false) then
+    return new;
+  end if;
+
   insert into public.chat_messages (conversation_id, sender_id, body, is_bot)
   values (
     new.id,
@@ -54,7 +114,8 @@ where not exists (
   select 1
   from public.chat_messages as messages
   where messages.conversation_id = conversations.id
-);
+)
+and coalesce((select enabled from public.chat_bot_settings where id), false);
 
 create or replace function public.create_chatbot_reply()
 returns trigger
@@ -67,7 +128,9 @@ declare
   message_text text;
   reply_text text;
 begin
-  if new.is_bot or char_length(btrim(new.body)) = 0 then
+  if new.is_bot
+    or char_length(btrim(new.body)) = 0
+    or not coalesce((select enabled from public.chat_bot_settings where id), false) then
     return new;
   end if;
 

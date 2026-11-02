@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Portfolio Admin | ManishKannaJ.</title>
     <link rel="stylesheet" href="../styles.css" />
-    <link rel="stylesheet" href="admin.css?v=11" />
+    <link rel="stylesheet" href="admin.css?v=13" />
   </head>
   <body data-theme="demon">
     <main class="admin-shell">
@@ -340,10 +340,17 @@
         </div>
         <p id="chat-inbox-status" class="admin-status" role="status" aria-live="polite">Run supabase/chat-migration.sql to enable visitor chat.</p>
         <h3 class="admin-chat-section-title">Private visitor conversations</h3>
+        <div class="admin-chatbot-controls">
+          <p id="admin-chatbot-status" class="admin-help" role="status" aria-live="polite">Loading automatic reply settings…</p>
+          <button id="admin-chatbot-toggle" class="btn btn-secondary" type="button" disabled>Loading…</button>
+        </div>
         <div class="admin-chat-layout">
           <div id="chat-conversation-list" class="admin-chat-conversations" aria-label="Chat conversations"></div>
           <div class="admin-chat-thread">
-            <h3 id="chat-thread-heading">Select a conversation</h3>
+            <div class="admin-chat-thread-heading">
+              <h3 id="chat-thread-heading">Select a conversation</h3>
+              <span id="admin-chat-thread-presence" class="chat-online-indicator" hidden></span>
+            </div>
             <div id="admin-chat-messages" class="admin-chat-messages" role="log" aria-live="polite" aria-label="Selected conversation messages"></div>
             <form id="admin-chat-reply-form" class="admin-chat-reply" hidden>
               <label class="sr-only" for="admin-chat-reply">Reply to visitor</label>
@@ -361,7 +368,7 @@
             <h3>Group rooms</h3>
             <p class="admin-help">Room UUIDs are invite codes. Share them only with people you want to invite.</p>
           </div>
-          <form id="chat-group-create-form" class="admin-inline-form">
+          <form id="chat-group-create-form" class="admin-inline-form admin-group-create-form">
             <label class="sr-only" for="chat-group-name">New room name</label>
             <input id="chat-group-name" name="name" type="text" maxlength="80" placeholder="New room name" required />
             <button class="btn btn-secondary" type="submit">Create room</button>
@@ -373,7 +380,10 @@
           <div class="admin-chat-thread admin-group-thread">
             <h3 id="chat-group-thread-heading">Select a group room</h3>
             <div class="admin-group-management">
-              <p class="admin-help">Room invite ID: <code id="chat-group-id">Select a room</code> <button id="copy-chat-group-id" class="admin-copy-group-id" type="button" disabled>Copy ID</button></p>
+              <div class="admin-group-management-actions">
+                <p class="admin-help">Room invite ID: <code id="chat-group-id">Select a room</code> <button id="copy-chat-group-id" class="admin-copy-group-id" type="button" disabled>Copy ID</button></p>
+                <button id="delete-chat-group" class="admin-delete-group" type="button" hidden>Delete room</button>
+              </div>
               <div>
                 <h4>Members</h4>
                 <div id="chat-group-members" class="admin-group-members"></div>
@@ -398,6 +408,6 @@
     </main>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="admin.js?v=12"></script>
+    <script src="admin.js?v=14"></script>
   </body>
 </html>

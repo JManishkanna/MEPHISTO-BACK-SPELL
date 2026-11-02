@@ -73,12 +73,13 @@ flowchart LR
   Pages -->|"public reads"| Portfolio
   ChatUI -->|"session + queries"| RLS
   AdminUI -->|"session + queries"| RLS
+  AdminUI -->|"pause / resume replies"| Bot
   RLS --> Portfolio
   RLS --> DMs
   RLS --> Groups
   RLS --> Profiles
   RLS --> Presence
-  DMs -->|"database triggers"| Bot
+  DMs -->|"database triggers when enabled"| Bot
   Bot -->|"saved as is_bot messages"| DMs
   ChatUI -->|"upload / signed URL"| Storage
   AdminUI -->|"upload / signed URL"| Storage
@@ -90,7 +91,8 @@ flowchart LR
 | Action | Data flow | Access rule |
 | --- | --- | --- |
 | Start private chat | Visitor session → `chat_conversations` → `chat_messages` | Visitor can read/write their own conversation; allowlisted admin can reply. |
-| Greet and auto-reply | New private conversation or visitor message → database trigger → `chat_messages` | Automated greeting and keyword-based answers are saved as bot messages; clients cannot mark their own messages as bot messages. |
+| Greet and auto-reply | New private conversation or visitor message → database trigger → `chat_messages` → Admin inbox | Admins can monitor, pause, or resume automatic replies; visitors cannot change bot settings or mark messages as bot messages. |
+| Show online marks | Group member/Admin session → scoped group-presence RPC → shared member names and online states | Only an Admin or member of that group can read its presence. Direct chats show the other participant's status. |
 | Join group | Visitor enters room UUID → `join_chat_group` RPC → `chat_group_members` | Signed-in user is added only to the matching room; the room ID acts as an invite. |
 | Send group message | Member session → `chat_group_messages` | Only room members and allowlisted admins can read or send. |
 | Show online status | Authenticated page → scoped presence RPCs → private `chat_presence` | Clients can mark only their own account online; visitors see only Admin status or a shared group's online count, and presence expires after 90 seconds. |
@@ -103,10 +105,11 @@ flowchart LR
 2. Run [`supabase/schema.sql`](./supabase/schema.sql) in the Supabase SQL Editor.
 3. Run [`supabase/chat-migration.sql`](./supabase/chat-migration.sql). It creates the chat tables and policies, seeds five group rooms, creates the private attachment bucket, and adds visitor display-name profiles. Rerun it to apply updates to an existing project.
 4. Run [`supabase/chatbot-migration.sql`](./supabase/chatbot-migration.sql) to enable the automatic direct-chat greeting and keyword replies.
-5. Create your admin account through the Supabase Dashboard, verify its email, and bind its Auth user UUID in `public.portfolio_admins` as described at the end of `schema.sql`.
-6. Enable email/password sign-up for visitors. If email confirmation is on, configure the Supabase Auth site URL and allow the deployed `/chat.html` URL as a redirect. Supabase's default email service may rate-limit sign-ups; configure custom SMTP for production.
-7. Put your project URL and **public anon/publishable key** in [`supabase-config.js`](./supabase-config.js). Never put a Supabase service-role or secret key in browser code.
-8. Deploy over HTTPS. Visitors use `/chat.html`; the allowlisted admin signs in at `/admin/`.
+5. Run [`supabase/chat-group-management-migration.sql`](./supabase/chat-group-management-migration.sql) to enable Admin-only room deletion and shared group online indicators.
+6. Create your admin account through the Supabase Dashboard, verify its email, and bind its Auth user UUID in `public.portfolio_admins` as described at the end of `schema.sql`.
+7. Enable email/password sign-up for visitors. If email confirmation is on, configure the Supabase Auth site URL and allow the deployed `/chat.html` URL as a redirect. Supabase's default email service may rate-limit sign-ups; configure custom SMTP for production.
+8. Put your project URL and **public anon/publishable key** in [`supabase-config.js`](./supabase-config.js). Never put a Supabase service-role or secret key in browser code.
+9. Deploy over HTTPS. Visitors use `/chat.html`; the allowlisted admin signs in at `/admin/`.
 
 Only explicitly bound, email-confirmed admin user IDs can manage portfolio content and view the Admin chat inbox. Row-level security restricts conversations and attachments to their participants and admins. A group UUID is an invite ID: share it only with people you want to invite.
 

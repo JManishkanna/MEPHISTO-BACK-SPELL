@@ -220,12 +220,21 @@ async function loadSelectedChatMessages() {
   if (!conversation) {
     heading.textContent = "Select a conversation";
     form.hidden = true;
+    document.getElementById("admin-chat-thread-presence").hidden = true;
     document.getElementById("admin-chat-messages").replaceChildren();
     latestAdminChatMessageId = "";
     return;
   }
 
-  heading.textContent = `${conversation.display_name} (${conversation.visitor_email}) · ${conversation.is_online ? "Online" : "Offline"}`;
+  heading.textContent = `${conversation.display_name} (${conversation.visitor_email})`;
+  const presence = document.getElementById("admin-chat-thread-presence");
+  presence.classList.toggle("is-online", Boolean(conversation.is_online));
+  presence.replaceChildren();
+  const dot = previewElement("span", "chat-online-dot");
+  dot.setAttribute("aria-hidden", "true");
+  presence.append(dot, document.createTextNode(conversation.is_online ? "Online" : "Offline"));
+  presence.setAttribute("aria-label", conversation.is_online ? "Visitor is online" : "Visitor is offline");
+  presence.hidden = false;
   form.hidden = false;
   const conversationId = conversation.id;
   const { data, error } = await client
@@ -407,6 +416,7 @@ async function loadSelectedChatGroup(group) {
   const heading = document.getElementById("chat-group-thread-heading");
   const inviteId = document.getElementById("chat-group-id");
   const copyButton = document.getElementById("copy-chat-group-id");
+  const deleteButton = document.getElementById("delete-chat-group");
   const membersContainer = document.getElementById("chat-group-members");
   const form = document.getElementById("admin-group-reply-form");
   const messageContainer = document.getElementById("admin-group-messages");
@@ -414,6 +424,7 @@ async function loadSelectedChatGroup(group) {
     heading.textContent = "Select a group room";
     inviteId.textContent = "Select a room";
     copyButton.disabled = true;
+    deleteButton.hidden = true;
     membersContainer.replaceChildren(previewElement("p", "admin-chat-empty", "No room selected."));
     form.hidden = true;
     messageContainer.replaceChildren();
@@ -424,6 +435,8 @@ async function loadSelectedChatGroup(group) {
   heading.textContent = group.name;
   inviteId.textContent = group.id;
   copyButton.disabled = false;
+  deleteButton.hidden = false;
+  deleteButton.disabled = false;
   form.hidden = false;
 
   const { data: members, error: membersError } = await client
@@ -1266,6 +1279,24 @@ async function verifyAdmin() {
   }
 }
 
+async function loadChatbotSettings() {
+  const status = document.getElementById("admin-chatbot-status");
+  const button = document.getElementById("admin-chatbot-toggle");
+  const { data, error } = await client.rpc("get_chatbot_enabled");
+  if (error) {
+    button.disabled = true;
+    setStatus(status, `Automatic replies unavailable: ${error.message}. Run the latest supabase/chatbot-migration.sql.`, true);
+    return;
+  }
+
+  button.dataset.enabled = String(Boolean(data));
+  button.textContent = data ? "Pause automatic replies" : "Enable automatic replies";
+  button.disabled = false;
+  setStatus(status, data
+    ? "Automatic replies are on. New visitor messages receive a bot reply in this inbox."
+    : "Automatic replies are paused. New visitor messages will wait for an Admin reply.");
+}
+
 async function updateAdminChatPresence(isOnline) {
   const { error } = await client.rpc("touch_chat_presence", { p_is_online: isOnline });
   if (error) {
@@ -1279,6 +1310,12 @@ async function openDashboard() {
     showDashboard();
     await Promise.all([loadProjects(), loadSettings(), loadResumeSetting()]);
     let setupMessage = "";
+    try {
+      await loadChatbotSettings();
+    } catch (error) {
+      console.error("Could not load chatbot settings:", error);
+      setStatus(document.getElementById("admin-chatbot-status"), `Automatic replies unavailable: ${error.message}`, true);
+    }
     try {
       await updateAdminChatPresence(true);
     } catch (error) {
@@ -1415,6 +1452,26 @@ document.getElementById("refresh-chat-inbox").addEventListener("click", async ()
   await loadChatInbox();
 });
 
+document.getElementById("admin-chatbot-toggle").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const status = document.getElementById("admin-chatbot-status");
+  const enabled = button.dataset.enabled === "true";
+  button.disabled = true;
+  setStatus(status, enabled ? "Pausing automatic replies…" : "Enabling automatic replies…");
+  const { data, error } = await client.rpc("set_chatbot_enabled", { p_enabled: !enabled });
+  if (error) {
+    setStatus(status, `Could not update automatic replies: ${error.message}`, true);
+    button.disabled = false;
+    return;
+  }
+  button.dataset.enabled = String(Boolean(data));
+  button.textContent = data ? "Pause automatic replies" : "Enable automatic replies";
+  button.disabled = false;
+  setStatus(status, data
+    ? "Automatic replies are on. New visitor messages receive a bot reply in this inbox."
+    : "Automatic replies are paused. New visitor messages will wait for an Admin reply.");
+});
+
 document.getElementById("admin-chat-reply-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const input = document.getElementById("admin-chat-reply");
@@ -1495,6 +1552,63 @@ document.getElementById("chat-group-create-form").addEventListener("submit", asy
   form.reset();
   await loadChatGroups();
   setStatus(document.getElementById("chat-group-status"), `Room created. Share invite ID ${data.id} only with invited members.`);
+});
+
+document.getElementById("delete-chat-group").addEventListener("click", async (event) => {
+  const group = chatGroups.find((item) => item.id === selectedChatGroupId);
+  const button = event.currentTarget;
+  const status = document.getElementById("chat-group-status");
+  if (!group || !window.confirm(`Permanently delete "${group.name}"? This removes the room, its messages, members, and attachments.`)) {
+    return;
+  }
+
+  button.disabled = true;
+  let roomDeleted = false;
+  try {
+    setStatus(status, `Deleting "${group.name}"…`);
+    const { data: messages, error: messagesError } = await client
+      .from("chat_group_messages")
+      .select("attachment_path")
+      .eq("group_id", group.id)
+      .not("attachment_path", "is", null);
+    if (messagesError) {
+      throw new Error(`Could not list room attachments: ${messagesError.message}`);
+    }
+
+    const { data: deletedGroups, error: deleteError } = await client
+      .from("chat_groups")
+      .delete()
+      .eq("id", group.id)
+      .select("id");
+    if (deleteError) {
+      throw new Error(`Could not delete room: ${deleteError.message}`);
+    }
+    if (!deletedGroups?.length) {
+      throw new Error("The room was not deleted. Refresh the Admin session and try again.");
+    }
+    roomDeleted = true;
+    selectedChatGroupId = "";
+    latestAdminGroupMessageId = "";
+    latestAdminGroupProfileSignature = "";
+    await loadChatGroups();
+
+    const attachmentPaths = [...new Set((messages || []).map((message) => message.attachment_path).filter(Boolean))];
+    if (attachmentPaths.length) {
+      const { error: cleanupError } = await client.storage.from(chatAttachmentBucket).remove(attachmentPaths);
+      if (cleanupError) {
+        throw new Error(`Room deleted, but some attachments could not be removed: ${cleanupError.message}`);
+      }
+    }
+    setStatus(status, `Deleted "${group.name}" and its messages, members, and attachments.`);
+  } catch (error) {
+    console.error(error);
+    if (roomDeleted) {
+      setStatus(status, error.message, true);
+    } else {
+      setStatus(status, error.message, true);
+      button.disabled = false;
+    }
+  }
 });
 
 document.getElementById("copy-chat-group-id").addEventListener("click", async () => {
