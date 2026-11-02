@@ -24,6 +24,15 @@
     element.dataset.error = String(isError);
   }
 
+  function isEmailRateLimited(error) {
+    return error?.code === "over_email_send_rate_limit"
+      || /email rate limit|rate limit.*email|email.*rate limit/i.test(error?.message || "");
+  }
+
+  function emailRateLimitMessage() {
+    return "Supabase has temporarily limited confirmation emails. Don’t retry sign-up; check your inbox and spam folder. If no email arrives, wait before requesting another or configure a custom SMTP provider in Supabase Auth.";
+  }
+
   function confirmationRedirectUrl() {
     return window.location.href.split(/[?#]/, 1)[0];
   }
@@ -239,6 +248,12 @@
       options: { emailRedirectTo: confirmationRedirectUrl() }
     });
     if (error) {
+      if (isEmailRateLimited(error)) {
+        setAuthMode(false);
+        document.getElementById("chat-login-email").value = email;
+        setStatus(authStatus, emailRateLimitMessage(), true);
+        return;
+      }
       setStatus(authStatus, `Could not create account: ${error.message}`, true);
       return;
     }
@@ -274,7 +289,11 @@
     });
     resendConfirmationButton.disabled = false;
     if (error) {
-      setStatus(authStatus, `Could not resend confirmation email: ${error.message}`, true);
+      setStatus(
+        authStatus,
+        isEmailRateLimited(error) ? emailRateLimitMessage() : `Could not resend confirmation email: ${error.message}`,
+        true
+      );
       return;
     }
     setStatus(authStatus, `If ${email} has an unconfirmed account, a new confirmation link is on its way.`);
