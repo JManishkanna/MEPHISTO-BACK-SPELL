@@ -5,6 +5,7 @@ const authStatus = document.getElementById("admin-auth-status");
 const dashboardStatus = document.getElementById("admin-status");
 const adminSectionLinks = [...document.querySelectorAll(".admin-section-nav a")];
 const adminSections = [...document.querySelectorAll("[data-admin-section]")];
+const adminChatLayout = document.getElementById("admin-chat-layout");
 const projectForm = document.getElementById("project-form");
 const projectList = document.getElementById("admin-project-list");
 const imageInput = document.getElementById("project-image");
@@ -44,6 +45,10 @@ let chatConversations = [];
 let selectedChatConversationId = "";
 let latestAdminChatMessageId = "";
 let latestAdminChatProfileSignature = "";
+let loadedAdminProfileUserId = "";
+let visitorProfilePhotoPreviewUrl = "";
+let visitorProfilePhotoUrls = new Map();
+let visitorProfilePhotoStatus = "";
 let chatInboxTimer = null;
 let chatPresenceTimer = null;
 let chatGroups = [];
@@ -52,7 +57,14 @@ let latestAdminGroupMessageId = "";
 let latestAdminGroupProfileSignature = "";
 
 const chatAttachmentBucket = "chat-attachments";
+const chatProfileImageBucket = "chat-profile-images";
 const chatAttachmentMaxSize = 10 * 1024 * 1024;
+const chatProfileImageMaxSize = 2 * 1024 * 1024;
+const chatProfileImageExtensions = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"]
+]);
 const chatAttachmentTypes = new Set([
   "image/jpeg",
   "image/png",
@@ -103,6 +115,151 @@ async function loadChatProfiles(userIds) {
     throw error;
   }
   return new Map((data || []).map((profile) => [profile.user_id, profile.display_name]));
+}
+
+async function loadChatProfileImages(userIds) {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  if (!ids.length) {
+    return new Map();
+  }
+  const { data, error } = await client
+    .from("chat_profiles")
+    .select("user_id, profile_image_path")
+    .in("user_id", ids);
+  if (error) {
+    throw error;
+  }
+  return new Map((data || []).map((profile) => [profile.user_id, profile.profile_image_path]));
+}
+
+async function getChatProfileImageUrl(path) {
+  if (!path) {
+    return "";
+  }
+  const cached = visitorProfilePhotoUrls.get(path);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.url;
+  }
+  const { data, error } = await client.storage
+    .from(chatProfileImageBucket)
+    .createSignedUrl(path, 3600);
+  if (error) {
+    throw error;
+  }
+  if (!data?.signedUrl) {
+    throw new Error("Supabase did not return a signed profile photo URL.");
+  }
+  visitorProfilePhotoUrls.set(path, { url: data.signedUrl, expiresAt: Date.now() + 3500000 });
+  return data.signedUrl;
+}
+
+async function cacheChatProfileImageUrls(paths) {
+  const uniquePaths = [...new Set(paths.filter(Boolean))]
+    .filter((path) => {
+      const cached = visitorProfilePhotoUrls.get(path);
+      return !cached || cached.expiresAt <= Date.now();
+    });
+  if (!uniquePaths.length) {
+    return;
+  }
+  const { data, error } = await client.storage
+    .from(chatProfileImageBucket)
+    .createSignedUrls(uniquePaths, 3600);
+  if (error) {
+    throw error;
+  }
+  for (const image of data || []) {
+    if (image.error || !image.signedUrl || !image.path) {
+      throw new Error(image.error || `Could not create a signed URL for ${image.path || "a profile photo"}.`);
+    }
+    visitorProfilePhotoUrls.set(image.path, {
+      url: image.signedUrl,
+      expiresAt: Date.now() + 3500000
+    });
+  }
+}
+
+function createChatProfileAvatar(className, displayName) {
+  const avatar = previewElement("span", className);
+  avatar.setAttribute("aria-label", `${displayName} profile photo`);
+  const fallback = previewElement("i", "fas fa-user");
+  fallback.setAttribute("aria-hidden", "true");
+  avatar.append(fallback);
+  return avatar;
+}
+
+function resetVisitorProfilePhotoPreview() {
+  const image = document.getElementById("admin-visitor-profile-image-preview");
+  if (visitorProfilePhotoPreviewUrl) {
+    URL.revokeObjectURL(visitorProfilePhotoPreviewUrl);
+    visitorProfilePhotoPreviewUrl = "";
+  }
+  image.removeAttribute("src");
+  image.hidden = true;
+  document.getElementById("admin-visitor-profile-image-placeholder").hidden = false;
+  document.getElementById("admin-visitor-profile-image-name").textContent = "";
+}
+
+async function showVisitorProfilePhotoPreview(path, file = null, isCurrent = () => true) {
+  resetVisitorProfilePhotoPreview();
+  const image = document.getElementById("admin-visitor-profile-image-preview");
+  const placeholder = document.getElementById("admin-visitor-profile-image-placeholder");
+  if (file) {
+    visitorProfilePhotoPreviewUrl = URL.createObjectURL(file);
+    image.src = visitorProfilePhotoPreviewUrl;
+    image.hidden = false;
+    placeholder.hidden = true;
+    document.getElementById("admin-visitor-profile-image-name").textContent = file.name;
+    return;
+  }
+  if (!path) {
+    return;
+  }
+  try {
+    const url = await getChatProfileImageUrl(path);
+    if (!isCurrent()) {
+      return;
+    }
+    image.src = url;
+    image.hidden = false;
+    placeholder.hidden = true;
+  } catch (error) {
+    console.error("Could not load visitor profile photo preview:", error);
+    setStatus(
+      document.getElementById("admin-visitor-profile-status"),
+      `Could not load profile photo: ${error.message}. Run the latest supabase/chat-migration.sql.`,
+      true
+    );
+  }
+}
+
+async function setChatProfileAvatar(avatar, path, displayName, isCurrent = () => true) {
+  if (!path) {
+    return;
+  }
+  try {
+    const url = await getChatProfileImageUrl(path);
+    if (!avatar.isConnected || !isCurrent()) {
+      return;
+    }
+    const image = document.createElement("img");
+    image.src = url;
+    image.alt = `${displayName} profile photo`;
+    image.loading = "lazy";
+    image.addEventListener("error", () => {
+      if (!avatar.isConnected || !isCurrent()) {
+        return;
+      }
+      image.remove();
+      const fallback = previewElement("i", "fas fa-user");
+      fallback.setAttribute("aria-hidden", "true");
+      avatar.replaceChildren(fallback);
+    }, { once: true });
+    avatar.replaceChildren(image);
+  } catch (error) {
+    console.error("Could not load visitor profile photo:", error);
+    visitorProfilePhotoStatus = ` Profile photos unavailable: ${error.message}`;
+  }
 }
 
 async function loadChatPresence(userIds) {
@@ -220,12 +377,50 @@ async function loadSelectedChatMessages() {
   if (!conversation) {
     heading.textContent = "Select a conversation";
     form.hidden = true;
+    document.getElementById("admin-chat-visitor-avatar").replaceChildren(
+      previewElement("i", "fas fa-user")
+    );
+    document.getElementById("admin-chat-back").hidden = true;
+    const profileDetails = document.getElementById("admin-visitor-profile");
+    profileDetails.hidden = true;
+    profileDetails.open = false;
+    loadedAdminProfileUserId = "";
+    document.getElementById("admin-visitor-profile-form").reset();
+    document.getElementById("admin-visitor-profile-image-file").value = "";
+    document.getElementById("admin-visitor-profile-image-remove").hidden = true;
+    resetVisitorProfilePhotoPreview();
     document.getElementById("admin-chat-thread-presence").hidden = true;
-    document.getElementById("admin-chat-messages").replaceChildren();
+    document.getElementById("admin-chat-messages").replaceChildren(
+      previewElement("p", "admin-chat-empty", "Select a visitor to open the conversation.")
+    );
     latestAdminChatMessageId = "";
     return;
   }
 
+  document.getElementById("admin-chat-back").hidden = false;
+  const profileDetails = document.getElementById("admin-visitor-profile");
+  profileDetails.hidden = false;
+  if (loadedAdminProfileUserId !== conversation.visitor_id) {
+    document.getElementById("admin-visitor-profile-id").textContent = conversation.visitor_id;
+    document.getElementById("admin-visitor-display-name").value = conversation.display_name;
+    document.getElementById("admin-visitor-profile-image-file").value = "";
+    document.getElementById("admin-visitor-profile-status").textContent = "";
+    document.getElementById("admin-visitor-profile-image-remove").hidden = !conversation.profile_image_path;
+    await showVisitorProfilePhotoPreview(
+      conversation.profile_image_path,
+      null,
+      () => selectedChatConversationId === conversation.id
+    );
+    loadedAdminProfileUserId = conversation.visitor_id;
+  }
+  const visitorAvatar = document.getElementById("admin-chat-visitor-avatar");
+  visitorAvatar.replaceChildren(previewElement("i", "fas fa-user"));
+  await setChatProfileAvatar(
+    visitorAvatar,
+    conversation.profile_image_path,
+    conversation.display_name,
+    () => selectedChatConversationId === conversation.id
+  );
   heading.textContent = `${conversation.display_name} (${conversation.visitor_email})`;
   const presence = document.getElementById("admin-chat-thread-presence");
   presence.classList.toggle("is-online", Boolean(conversation.is_online));
@@ -266,6 +461,7 @@ async function loadChatInbox() {
     return;
   }
   chatConversations = data || [];
+  visitorProfilePhotoStatus = "";
   try {
     const profileNames = await loadChatProfiles(chatConversations.map((conversation) => conversation.visitor_id));
     chatConversations.forEach((conversation) => {
@@ -277,6 +473,16 @@ async function loadChatInbox() {
     setStatus(status, `Could not load visitor display names: ${profileError.message}`, true);
     return;
   }
+  try {
+    const profileImages = await loadChatProfileImages(chatConversations.map((conversation) => conversation.visitor_id));
+    chatConversations.forEach((conversation) => {
+      conversation.profile_image_path = profileImages.get(conversation.visitor_id) || "";
+    });
+    await cacheChatProfileImageUrls(chatConversations.map((conversation) => conversation.profile_image_path));
+  } catch (profileImageError) {
+    console.error("Could not load visitor profile photos:", profileImageError);
+    visitorProfilePhotoStatus = ` Profile photos unavailable. Run the latest supabase/chat-migration.sql. Details: ${profileImageError.message}`;
+  }
   let presenceErrorMessage = "";
   try {
     const presenceByUserId = await loadChatPresence(chatConversations.map((conversation) => conversation.visitor_id));
@@ -285,12 +491,12 @@ async function loadChatInbox() {
     });
   } catch (presenceError) {
     console.error(presenceError);
-    presenceErrorMessage = ` Online status unavailable: ${presenceError.message}`;
+    presenceErrorMessage = ` Online status unavailable: ${presenceError.message}. Run the latest supabase/chat-migration.sql in the Supabase SQL Editor, then reload this page.`;
   }
   if (!chatConversations.length) {
     selectedChatConversationId = "";
   } else if (!chatConversations.some((conversation) => conversation.id === selectedChatConversationId)) {
-    selectedChatConversationId = chatConversations[0].id;
+    selectedChatConversationId = "";
     latestAdminChatMessageId = "";
   }
 
@@ -314,38 +520,49 @@ async function loadChatInbox() {
   }
 
   list.replaceChildren();
-  chatConversations.forEach((conversation) => {
+  for (const conversation of chatConversations) {
     const button = previewElement("button", "admin-chat-conversation");
     button.type = "button";
     button.classList.toggle("active", conversation.id === selectedChatConversationId);
+    const avatar = createChatProfileAvatar("admin-chat-visitor-avatar", conversation.display_name);
+    const copy = previewElement("span", "admin-chat-conversation-copy");
     const name = previewElement("strong", "", conversation.display_name);
     const email = previewElement("span", "", conversation.visitor_email);
     const latestMessage = latestMessages.get(conversation.id);
     const previewText = latestMessage?.body || latestMessage?.attachment_name || "No messages yet";
     const preview = previewElement("span", "", latestMessage?.is_bot ? `Assistant: ${previewText}` : previewText);
-    button.append(name, email, preview, createChatPresenceIndicator(Boolean(conversation.is_online)));
+    copy.append(name, email);
+    button.append(avatar, copy, preview, createChatPresenceIndicator(Boolean(conversation.is_online)));
     button.addEventListener("click", async () => {
       selectedChatConversationId = conversation.id;
       latestAdminChatMessageId = "";
       await loadChatInbox();
     });
     list.append(button);
-  });
+    await setChatProfileAvatar(
+      avatar,
+      conversation.profile_image_path,
+      conversation.display_name,
+      () => selectedChatConversationId === conversation.id || button.isConnected
+    );
+  }
   if (!chatConversations.length) {
     list.append(previewElement("p", "admin-chat-empty", "No visitor conversations yet."));
   }
+  adminChatLayout.classList.toggle("has-selected-conversation", Boolean(selectedChatConversationId));
 
-  setStatus(
-    status,
-    `${chatConversations.length} conversation${chatConversations.length === 1 ? "" : "s"}. Inbox refreshes automatically.${presenceErrorMessage}`,
-    Boolean(presenceErrorMessage)
-  );
+  let messageErrorMessage = "";
   try {
     await loadSelectedChatMessages();
   } catch (messageError) {
-    setStatus(status, `Could not load conversation messages: ${messageError.message}`, true);
+    messageErrorMessage = ` Could not load conversation messages: ${messageError.message}`;
   }
   await loadChatGroups();
+  setStatus(
+    status,
+    `${chatConversations.length} conversation${chatConversations.length === 1 ? "" : "s"}. Inbox refreshes automatically.${presenceErrorMessage}${visitorProfilePhotoStatus}${messageErrorMessage}`,
+    Boolean(presenceErrorMessage || visitorProfilePhotoStatus || messageErrorMessage)
+  );
 }
 
 async function loadChatGroups() {
@@ -1588,6 +1805,158 @@ document.addEventListener("visibilitychange", () => {
 });
 
 document.getElementById("refresh-chat-inbox").addEventListener("click", async () => {
+  await loadChatInbox();
+});
+
+document.getElementById("admin-chat-back").addEventListener("click", async () => {
+  selectedChatConversationId = "";
+  latestAdminChatMessageId = "";
+  latestAdminChatProfileSignature = "";
+  adminChatLayout.classList.remove("has-selected-conversation");
+  await loadSelectedChatMessages();
+  await loadChatInbox();
+});
+
+document.getElementById("admin-visitor-profile-image-file").addEventListener("change", (event) => {
+  const file = event.currentTarget.files?.[0] || null;
+  const status = document.getElementById("admin-visitor-profile-status");
+  if (!file) {
+    const conversation = chatConversations.find((item) => item.id === selectedChatConversationId);
+    showVisitorProfilePhotoPreview(conversation?.profile_image_path || "");
+    return;
+  }
+  if (!chatProfileImageExtensions.has(file.type) || file.size > chatProfileImageMaxSize) {
+    event.currentTarget.value = "";
+    setStatus(status, "Choose a JPEG, PNG, or WebP image up to 2 MB.", true);
+    return;
+  }
+  setStatus(status, "");
+  showVisitorProfilePhotoPreview("", file);
+});
+
+document.getElementById("admin-visitor-profile-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const conversation = chatConversations.find((item) => item.id === selectedChatConversationId);
+  const input = document.getElementById("admin-visitor-display-name");
+  const fileInput = document.getElementById("admin-visitor-profile-image-file");
+  const status = document.getElementById("admin-visitor-profile-status");
+  const displayName = input.value.trim();
+  const file = fileInput.files?.[0] || null;
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  if (!conversation || !displayName || displayName.length > 40
+    || (file && (!chatProfileImageExtensions.has(file.type) || file.size > chatProfileImageMaxSize))) {
+    setStatus(status, "Enter a display name up to 40 characters and choose a JPEG, PNG, or WebP photo up to 2 MB.", true);
+    return;
+  }
+
+  button.disabled = true;
+  let uploadedPath = "";
+  if (file) {
+    uploadedPath = `${conversation.visitor_id}/${crypto.randomUUID()}.${chatProfileImageExtensions.get(file.type)}`;
+    const { error: uploadError } = await client.storage
+      .from(chatProfileImageBucket)
+      .upload(uploadedPath, file, { contentType: file.type, upsert: false });
+    if (uploadError) {
+      button.disabled = false;
+      setStatus(status, `Could not upload profile photo: ${uploadError.message}. Run the latest supabase/chat-migration.sql.`, true);
+      return;
+    }
+  }
+
+  const previousPath = conversation.profile_image_path || "";
+  const nextPath = uploadedPath || previousPath || null;
+  const { data, error } = await client
+    .from("chat_profiles")
+    .upsert(
+      { user_id: conversation.visitor_id, display_name: displayName, profile_image_path: nextPath },
+      { onConflict: "user_id" }
+    )
+    .select("user_id")
+    .maybeSingle();
+  if (error) {
+    let cleanupMessage = "";
+    if (uploadedPath) {
+      const { error: cleanupError } = await client.storage
+        .from(chatProfileImageBucket)
+        .remove([uploadedPath]);
+      if (cleanupError) {
+        cleanupMessage = ` The uploaded photo could not be cleaned up: ${cleanupError.message}`;
+      }
+    }
+    button.disabled = false;
+    setStatus(status, `Could not save visitor profile: ${error.message}. Run the latest supabase/chat-migration.sql.${cleanupMessage}`, true);
+    return;
+  }
+  if (!data) {
+    let cleanupMessage = "";
+    if (uploadedPath) {
+      const { error: cleanupError } = await client.storage
+        .from(chatProfileImageBucket)
+        .remove([uploadedPath]);
+      if (cleanupError) {
+        cleanupMessage = ` The uploaded photo could not be cleaned up: ${cleanupError.message}`;
+      }
+    }
+    button.disabled = false;
+    setStatus(status, `The visitor profile was not updated. Run the latest supabase/chat-migration.sql and try again.${cleanupMessage}`, true);
+    return;
+  }
+  conversation.display_name = displayName;
+  conversation.profile_image_path = nextPath || "";
+  fileInput.value = "";
+  let cleanupMessage = "";
+  if (uploadedPath && previousPath) {
+    const { error: cleanupError } = await client.storage
+      .from(chatProfileImageBucket)
+      .remove([previousPath]);
+    visitorProfilePhotoUrls.delete(previousPath);
+    if (cleanupError) {
+      cleanupMessage = ` The new photo is saved, but the previous photo could not be removed: ${cleanupError.message}`;
+    }
+  }
+  button.disabled = false;
+  document.getElementById("admin-visitor-profile-image-remove").hidden = !nextPath;
+  await showVisitorProfilePhotoPreview(nextPath || "");
+  setStatus(status, `Visitor profile saved.${cleanupMessage}`, Boolean(cleanupMessage));
+  await loadChatInbox();
+});
+
+document.getElementById("admin-visitor-profile-image-remove").addEventListener("click", async (event) => {
+  const conversation = chatConversations.find((item) => item.id === selectedChatConversationId);
+  const button = event.currentTarget;
+  const status = document.getElementById("admin-visitor-profile-status");
+  if (!conversation?.profile_image_path) {
+    return;
+  }
+
+  button.disabled = true;
+  const previousPath = conversation.profile_image_path;
+  const { data, error } = await client
+    .from("chat_profiles")
+    .update({ profile_image_path: null })
+    .eq("user_id", conversation.visitor_id)
+    .select("user_id")
+    .maybeSingle();
+  if (error || !data) {
+    button.disabled = false;
+    setStatus(status, `Could not remove visitor photo: ${error?.message || "profile was not updated"}. Run the latest supabase/chat-migration.sql.`, true);
+    return;
+  }
+
+  conversation.profile_image_path = "";
+  document.getElementById("admin-visitor-profile-image-file").value = "";
+  document.getElementById("admin-visitor-profile-image-remove").hidden = true;
+  resetVisitorProfilePhotoPreview();
+  visitorProfilePhotoUrls.delete(previousPath);
+  const { error: removeError } = await client.storage
+    .from(chatProfileImageBucket)
+    .remove([previousPath]);
+  button.disabled = false;
+  if (removeError) {
+    setStatus(status, `Profile photo removed, but the old image file could not be deleted: ${removeError.message}`, true);
+  } else {
+    setStatus(status, "Visitor profile photo removed.");
+  }
   await loadChatInbox();
 });
 

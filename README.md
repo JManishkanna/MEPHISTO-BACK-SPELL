@@ -29,7 +29,7 @@ The root `sitemap.xml` lists the public portfolio pages, and `robots.txt` points
 1. A visitor opens `/chat.html`, signs in, or creates an email/password account.
 2. Supabase Auth issues the visitor's session. When email confirmation is enabled, the visitor confirms the email before signing in.
 3. The chat page opens the visitor's private conversation and loads the group rooms that visitor has joined.
-4. Visitors can edit their display name from the chat header. The name is stored in `chat_profiles` and displayed in messages and the Admin inbox; their login email remains private to the account and Admin inbox.
+4. Visitors can edit their display name from the chat header. The name is stored in `chat_profiles` and displayed in messages and the Admin inbox; their login email remains private to the account and Admin inbox. Admins can update visitor names and optional profile photos from the inbox (JPEG, PNG, or WebP, up to 2 MB).
 5. To join a group, the visitor enters an invite UUID supplied by the admin. Supabase validates the UUID and adds the signed-in visitor as a member.
 6. Visitors and admins send text or optionally attach a supported photo/document (up to 10 MB). Messages persist in Supabase; the page polls periodically for new messages and refreshes online presence.
 7. The allowlisted admin opens `/admin/`, selects a private conversation or group, replies, creates additional rooms, copies invite IDs, and removes group members.
@@ -103,7 +103,7 @@ flowchart LR
 
 1. Create a Supabase project.
 2. Run [`supabase/schema.sql`](./supabase/schema.sql) in the Supabase SQL Editor.
-3. Run [`supabase/chat-migration.sql`](./supabase/chat-migration.sql). It creates the chat tables and policies, seeds five group rooms, creates the private attachment bucket, and adds visitor display-name profiles. Rerun it to apply updates to an existing project.
+3. Run [`supabase/chat-migration.sql`](./supabase/chat-migration.sql). It creates chat tables and policies, seeds five group rooms, creates private attachment and profile-image buckets, adds presence RPCs, and enables visitor profiles. Visitors manage their own display name; Admins can edit visitor names and photos (JPEG, PNG, or WebP, up to 2 MB) from the inbox. Rerun it to apply updates to an existing project.
 4. Run [`supabase/chatbot-migration.sql`](./supabase/chatbot-migration.sql) to enable the automatic direct-chat greeting and keyword replies.
 5. Run [`supabase/chat-group-management-migration.sql`](./supabase/chat-group-management-migration.sql) to enable Admin-only room deletion and shared group online indicators.
 6. Create your admin account through the Supabase Dashboard, verify its email, and bind its Auth user UUID in `public.portfolio_admins` as described at the end of `schema.sql`.

@@ -16,8 +16,25 @@ create table if not exists public.chat_messages (
 
 create table if not exists public.chat_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  display_name text not null check (char_length(btrim(display_name)) between 1 and 40)
+  display_name text not null check (char_length(btrim(display_name)) between 1 and 40),
+  profile_image_path text
 );
+
+alter table public.chat_profiles
+  add column if not exists profile_image_path text;
+
+alter table public.chat_profiles
+  drop constraint if exists chat_profiles_profile_image_path_check;
+
+alter table public.chat_profiles
+  add constraint chat_profiles_profile_image_path_check check (
+    profile_image_path is null
+    or (
+      profile_image_path like user_id::text || '/%'
+      and array_length(string_to_array(profile_image_path, '/'), 1) = 2
+      and char_length(profile_image_path) <= 1024
+    )
+  );
 
 create table if not exists public.chat_presence (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -57,6 +74,38 @@ using (
 with check (
   user_id = (select auth.uid())
   and not (select public.is_portfolio_admin())
+);
+
+drop policy if exists "Admins can create visitor chat profiles" on public.chat_profiles;
+create policy "Admins can create visitor chat profiles"
+on public.chat_profiles for insert to authenticated
+with check (
+  (select public.is_portfolio_admin())
+  and exists (
+    select 1
+    from public.chat_conversations
+    where chat_conversations.visitor_id = chat_profiles.user_id
+  )
+);
+
+drop policy if exists "Admins can update visitor chat profiles" on public.chat_profiles;
+create policy "Admins can update visitor chat profiles"
+on public.chat_profiles for update to authenticated
+using (
+  (select public.is_portfolio_admin())
+  and exists (
+    select 1
+    from public.chat_conversations
+    where chat_conversations.visitor_id = chat_profiles.user_id
+  )
+)
+with check (
+  (select public.is_portfolio_admin())
+  and exists (
+    select 1
+    from public.chat_conversations
+    where chat_conversations.visitor_id = chat_profiles.user_id
+  )
 );
 
 alter table public.chat_messages
@@ -468,6 +517,59 @@ on conflict (seed_key) do nothing;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
+  'chat-profile-images',
+  'chat-profile-images',
+  false,
+  2097152,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update
+set name = excluded.name,
+    public = false,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Signed-in users can read chat profile images" on storage.objects;
+create policy "Signed-in users can read chat profile images"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'chat-profile-images'
+  and array_length(storage.foldername(name), 1) = 1
+  and (select auth.uid()) is not null
+);
+
+drop policy if exists "Visitors and admins can upload chat profile images" on storage.objects;
+drop policy if exists "Admins can upload visitor chat profile images" on storage.objects;
+create policy "Admins can upload visitor chat profile images"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id = 'chat-profile-images'
+  and array_length(storage.foldername(name), 1) = 1
+  and (select public.is_portfolio_admin())
+  and exists (
+    select 1
+    from public.chat_conversations
+    where chat_conversations.visitor_id::text = (storage.foldername(name))[1]
+  )
+);
+
+drop policy if exists "Visitors and admins can delete chat profile images" on storage.objects;
+drop policy if exists "Admins can delete visitor chat profile images" on storage.objects;
+create policy "Admins can delete visitor chat profile images"
+on storage.objects for delete to authenticated
+using (
+  bucket_id = 'chat-profile-images'
+  and array_length(storage.foldername(name), 1) = 1
+  and (select public.is_portfolio_admin())
+  and exists (
+    select 1
+    from public.chat_conversations
+    where chat_conversations.visitor_id::text = (storage.foldername(name))[1]
+  )
+);
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
   'chat-attachments',
   'chat-attachments',
   false,
@@ -572,3 +674,5 @@ using (
     )
   )
 );
+
+notify pgrst, 'reload schema';
