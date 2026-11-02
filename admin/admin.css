@@ -351,6 +351,7 @@
 }
 
 .admin-chat-message {
+  align-self: flex-start;
   width: fit-content;
   max-width: 85%;
   padding: 10px 12px;

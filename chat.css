@@ -637,6 +637,7 @@
 }
 
 .chat-message {
+  align-self: flex-start;
   width: fit-content;
   max-width: min(82%, 620px);
   padding: 11px 14px;
