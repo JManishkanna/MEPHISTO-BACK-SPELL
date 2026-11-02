@@ -88,6 +88,14 @@ with check (
   )
 );
 
+drop policy if exists "Admins can create their own chat profile" on public.chat_profiles;
+create policy "Admins can create their own chat profile"
+on public.chat_profiles for insert to authenticated
+with check (
+  user_id = (select auth.uid())
+  and (select public.is_portfolio_admin())
+);
+
 drop policy if exists "Admins can update visitor chat profiles" on public.chat_profiles;
 create policy "Admins can update visitor chat profiles"
 on public.chat_profiles for update to authenticated
@@ -106,6 +114,18 @@ with check (
     from public.chat_conversations
     where chat_conversations.visitor_id = chat_profiles.user_id
   )
+);
+
+drop policy if exists "Admins can update their own chat profile" on public.chat_profiles;
+create policy "Admins can update their own chat profile"
+on public.chat_profiles for update to authenticated
+using (
+  user_id = (select auth.uid())
+  and (select public.is_portfolio_admin())
+)
+with check (
+  user_id = (select auth.uid())
+  and (select public.is_portfolio_admin())
 );
 
 alter table public.chat_messages
@@ -546,10 +566,13 @@ with check (
   bucket_id = 'chat-profile-images'
   and array_length(storage.foldername(name), 1) = 1
   and (select public.is_portfolio_admin())
-  and exists (
-    select 1
-    from public.chat_conversations
-    where chat_conversations.visitor_id::text = (storage.foldername(name))[1]
+  and (
+    (storage.foldername(name))[1] = (select auth.uid())::text
+    or exists (
+      select 1
+      from public.chat_conversations
+      where chat_conversations.visitor_id::text = (storage.foldername(name))[1]
+    )
   )
 );
 
@@ -561,10 +584,13 @@ using (
   bucket_id = 'chat-profile-images'
   and array_length(storage.foldername(name), 1) = 1
   and (select public.is_portfolio_admin())
-  and exists (
-    select 1
-    from public.chat_conversations
-    where chat_conversations.visitor_id::text = (storage.foldername(name))[1]
+  and (
+    (storage.foldername(name))[1] = (select auth.uid())::text
+    or exists (
+      select 1
+      from public.chat_conversations
+      where chat_conversations.visitor_id::text = (storage.foldername(name))[1]
+    )
   )
 );
 

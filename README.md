@@ -7,6 +7,7 @@ Personal portfolio website for a Java full-stack developer, built with HTML, CSS
 - Responsive portfolio pages for Home, About, Skills, Projects, Contact, and Chat.
 - Theme selector and mobile navigation.
 - Projects and portfolio content managed through a Supabase-backed Admin dashboard.
+- Allowlisted Admins can set their chat display name and profile photo from the Admin dashboard.
 - Visitor email/password sign-up and sign-in for chat.
 - Visitors can choose a 1–40 character chat display name; it is shown to other signed-in chat users.
 - Private visitor-to-admin conversations and five seeded group rooms: General, Introductions, Projects, Questions, and Resources.

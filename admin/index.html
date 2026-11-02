@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Portfolio Admin | ManishKannaJ.</title>
     <link rel="stylesheet" href="../styles.css" />
-    <link rel="stylesheet" href="admin.css?v=18" />
+    <link rel="stylesheet" href="admin.css?v=19" />
   </head>
   <body data-theme="demon">
     <main class="admin-shell">
@@ -38,6 +38,30 @@
             <span class="eyebrow"><i class="fas fa-sliders" aria-hidden="true"></i> Portfolio content</span>
             <h1>Admin dashboard</h1>
           </div>
+          <details class="admin-profile-editor">
+            <summary>
+              <span id="admin-profile-avatar" class="admin-profile-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
+              <span id="admin-profile-summary-name">Admin profile</span>
+              <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </summary>
+            <form id="admin-profile-form" class="admin-profile-form">
+              <h2>Admin profile</h2>
+              <p id="admin-profile-email" class="admin-help"></p>
+              <label for="admin-profile-display-name">Display name</label>
+              <input id="admin-profile-display-name" name="display_name" maxlength="40" autocomplete="nickname" required />
+              <label for="admin-profile-image-file">Profile photo</label>
+              <input id="admin-profile-image-file" name="profile_image" type="file" accept="image/jpeg,image/png,image/webp" />
+              <p class="admin-help">JPEG, PNG, or WebP up to 2 MB.</p>
+              <div class="admin-profile-photo-preview">
+                <span id="admin-profile-image-placeholder" aria-hidden="true"><i class="fas fa-user"></i></span>
+                <img id="admin-profile-image-preview" alt="Admin profile photo preview" hidden />
+                <span id="admin-profile-image-name"></span>
+              </div>
+              <button id="admin-profile-save" class="btn btn-primary" type="submit">Save profile</button>
+              <button id="admin-profile-image-remove" class="btn btn-secondary" type="button" hidden>Remove profile photo</button>
+              <p id="admin-profile-status" class="admin-status" role="status" aria-live="polite"></p>
+            </form>
+          </details>
           <button id="admin-signout" class="btn btn-secondary" type="button">Sign out</button>
         </div>
         <p class="admin-status" id="admin-status" role="status" aria-live="polite"></p>
@@ -489,6 +513,6 @@
     </main>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="admin.js?v=17"></script>
+    <script src="admin.js?v=18"></script>
   </body>
 </html>

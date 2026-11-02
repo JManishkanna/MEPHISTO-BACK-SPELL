@@ -46,6 +46,9 @@ let selectedChatConversationId = "";
 let latestAdminChatMessageId = "";
 let latestAdminChatProfileSignature = "";
 let loadedAdminProfileUserId = "";
+let adminUserId = "";
+let adminProfileImagePath = "";
+let adminProfilePhotoPreviewUrl = "";
 let visitorProfilePhotoPreviewUrl = "";
 let visitorProfilePhotoUrls = new Map();
 let visitorProfilePhotoStatus = "";
@@ -177,6 +180,105 @@ async function cacheChatProfileImageUrls(paths) {
       expiresAt: Date.now() + 3500000
     });
   }
+}
+
+function resetAdminProfilePhotoPreview() {
+  const image = document.getElementById("admin-profile-image-preview");
+  if (adminProfilePhotoPreviewUrl) {
+    URL.revokeObjectURL(adminProfilePhotoPreviewUrl);
+    adminProfilePhotoPreviewUrl = "";
+  }
+  image.removeAttribute("src");
+  image.hidden = true;
+  document.getElementById("admin-profile-image-placeholder").hidden = false;
+  document.getElementById("admin-profile-image-name").textContent = "";
+}
+
+async function showAdminProfilePhotoPreview(path, file = null) {
+  resetAdminProfilePhotoPreview();
+  const image = document.getElementById("admin-profile-image-preview");
+  const placeholder = document.getElementById("admin-profile-image-placeholder");
+  if (file) {
+    adminProfilePhotoPreviewUrl = URL.createObjectURL(file);
+    image.src = adminProfilePhotoPreviewUrl;
+    image.hidden = false;
+    placeholder.hidden = true;
+    document.getElementById("admin-profile-image-name").textContent = file.name;
+    return;
+  }
+  if (!path) {
+    return;
+  }
+
+  try {
+    image.src = await getChatProfileImageUrl(path);
+    image.hidden = false;
+    placeholder.hidden = true;
+  } catch (error) {
+    console.error("Could not load admin profile photo preview:", error);
+    setStatus(document.getElementById("admin-profile-status"), `Could not load profile photo: ${error.message}`, true);
+  }
+}
+
+async function setAdminProfileAvatar(path) {
+  const avatar = document.getElementById("admin-profile-avatar");
+  const fallback = previewElement("i", "fas fa-user");
+  fallback.setAttribute("aria-hidden", "true");
+  avatar.replaceChildren(fallback);
+  if (!path) {
+    return;
+  }
+
+  try {
+    const url = await getChatProfileImageUrl(path);
+    if (!avatar.isConnected || path !== adminProfileImagePath) {
+      return;
+    }
+    const image = document.createElement("img");
+    image.src = url;
+    image.alt = "";
+    image.addEventListener("error", () => {
+      if (avatar.isConnected && path === adminProfileImagePath) {
+        avatar.replaceChildren(fallback);
+      }
+    }, { once: true });
+    avatar.replaceChildren(image);
+  } catch (error) {
+    console.error("Could not load admin profile photo:", error);
+  }
+}
+
+async function loadAdminProfile() {
+  const { data: userData, error: userError } = await client.auth.getUser();
+  if (userError) {
+    throw new Error(`Could not load the signed-in admin account: ${userError.message}`);
+  }
+  const user = userData.user;
+  if (!user) {
+    throw new Error("The signed-in admin account is unavailable.");
+  }
+
+  adminUserId = user.id;
+  const email = user.email || "";
+  document.getElementById("admin-profile-email").textContent = email;
+  const { data, error } = await client
+    .from("chat_profiles")
+    .select("display_name, profile_image_path")
+    .eq("user_id", adminUserId)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`Could not load the admin profile: ${error.message}. Run the latest supabase/chat-migration.sql.`);
+  }
+
+  adminProfileImagePath = data?.profile_image_path || "";
+  const displayName = data?.display_name || user.user_metadata?.full_name || email.split("@")[0] || "Admin";
+  document.getElementById("admin-profile-display-name").value = displayName;
+  document.getElementById("admin-profile-summary-name").textContent = displayName;
+  document.getElementById("admin-profile-image-file").value = "";
+  document.getElementById("admin-profile-image-remove").hidden = !adminProfileImagePath;
+  setStatus(document.getElementById("admin-profile-status"), "");
+  await showAdminProfilePhotoPreview(adminProfileImagePath);
+  await setAdminProfileAvatar(adminProfileImagePath);
 }
 
 function createChatProfileAvatar(className, displayName) {
@@ -1051,6 +1153,9 @@ function renderProjectsPagePreview() {
 function showLogin(message = "") {
   dashboard.hidden = true;
   authPanel.hidden = false;
+  adminUserId = "";
+  adminProfileImagePath = "";
+  resetAdminProfilePhotoPreview();
   if (message) {
     setStatus(authStatus, message, true);
   }
@@ -1661,6 +1766,13 @@ async function openDashboard() {
     await Promise.all([loadProjects(), loadSettings(), loadResumeSetting()]);
     let setupMessage = "";
     try {
+      await loadAdminProfile();
+    } catch (error) {
+      console.error("Could not load admin profile:", error);
+      setStatus(document.getElementById("admin-profile-status"), error.message, true);
+      setupMessage = error.message;
+    }
+    try {
       await loadChatbotSettings();
     } catch (error) {
       console.error("Could not load chatbot settings:", error);
@@ -1676,7 +1788,7 @@ async function openDashboard() {
       await updateAdminChatPresence(true);
     } catch (error) {
       console.error(error);
-      setupMessage = `Online status unavailable: ${error.message}. Run the latest supabase/chat-migration.sql.`;
+      setupMessage = [setupMessage, `Online status unavailable: ${error.message}. Run the latest supabase/chat-migration.sql.`].filter(Boolean).join(" ");
     }
     try {
       await loadSocialLinks();
@@ -1815,6 +1927,143 @@ document.getElementById("admin-chat-back").addEventListener("click", async () =>
   adminChatLayout.classList.remove("has-selected-conversation");
   await loadSelectedChatMessages();
   await loadChatInbox();
+});
+
+document.getElementById("admin-profile-image-file").addEventListener("change", (event) => {
+  const file = event.currentTarget.files?.[0] || null;
+  const status = document.getElementById("admin-profile-status");
+  if (!file) {
+    showAdminProfilePhotoPreview(adminProfileImagePath);
+    return;
+  }
+  if (!chatProfileImageExtensions.has(file.type) || file.size > chatProfileImageMaxSize) {
+    event.currentTarget.value = "";
+    setStatus(status, "Choose a JPEG, PNG, or WebP image up to 2 MB.", true);
+    return;
+  }
+  setStatus(status, "");
+  showAdminProfilePhotoPreview("", file);
+});
+
+document.getElementById("admin-profile-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const displayName = document.getElementById("admin-profile-display-name").value.trim();
+  const fileInput = document.getElementById("admin-profile-image-file");
+  const file = fileInput.files?.[0] || null;
+  const status = document.getElementById("admin-profile-status");
+  const saveButton = document.getElementById("admin-profile-save");
+  if (!adminUserId || !displayName || displayName.length > 40
+    || (file && (!chatProfileImageExtensions.has(file.type) || file.size > chatProfileImageMaxSize))) {
+    setStatus(status, "Enter a display name up to 40 characters and choose a JPEG, PNG, or WebP photo up to 2 MB.", true);
+    return;
+  }
+
+  saveButton.disabled = true;
+  let uploadedPath = "";
+  const previousPath = adminProfileImagePath;
+  try {
+    if (file) {
+      uploadedPath = `${adminUserId}/${crypto.randomUUID()}.${chatProfileImageExtensions.get(file.type)}`;
+      const { error: uploadError } = await client.storage
+        .from(chatProfileImageBucket)
+        .upload(uploadedPath, file, { contentType: file.type, upsert: false });
+      if (uploadError) {
+        throw new Error(`Could not upload profile photo: ${uploadError.message}`);
+      }
+    }
+
+    const nextPath = uploadedPath || previousPath || null;
+    const { data, error } = await client
+      .from("chat_profiles")
+      .upsert(
+        { user_id: adminUserId, display_name: displayName, profile_image_path: nextPath },
+        { onConflict: "user_id" }
+      )
+      .select("user_id")
+      .maybeSingle();
+    if (error) {
+      throw new Error(`Could not save admin profile: ${error.message}. Run the latest supabase/chat-migration.sql.`);
+    }
+    if (!data) {
+      throw new Error("The admin profile was not updated. Run the latest supabase/chat-migration.sql and try again.");
+    }
+
+    adminProfileImagePath = nextPath || "";
+    document.getElementById("admin-profile-summary-name").textContent = displayName;
+    fileInput.value = "";
+    document.getElementById("admin-profile-image-remove").hidden = !adminProfileImagePath;
+    let cleanupMessage = "";
+    if (uploadedPath && previousPath) {
+      const { error: cleanupError } = await client.storage
+        .from(chatProfileImageBucket)
+        .remove([previousPath]);
+      visitorProfilePhotoUrls.delete(previousPath);
+      if (cleanupError) {
+        cleanupMessage = ` The previous photo could not be removed: ${cleanupError.message}`;
+      }
+    }
+    await showAdminProfilePhotoPreview(adminProfileImagePath);
+    await setAdminProfileAvatar(adminProfileImagePath);
+    setStatus(status, `Admin profile saved.${cleanupMessage}`, Boolean(cleanupMessage));
+  } catch (error) {
+    console.error("Could not save admin profile:", error);
+    let cleanupMessage = "";
+    if (uploadedPath && adminProfileImagePath !== uploadedPath) {
+      const { error: cleanupError } = await client.storage
+        .from(chatProfileImageBucket)
+        .remove([uploadedPath]);
+      if (cleanupError) {
+        cleanupMessage = ` The uploaded photo could not be cleaned up: ${cleanupError.message}`;
+      }
+    }
+    setStatus(status, `${error.message}${cleanupMessage}`, true);
+  } finally {
+    saveButton.disabled = false;
+  }
+});
+
+document.getElementById("admin-profile-image-remove").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const status = document.getElementById("admin-profile-status");
+  const previousPath = adminProfileImagePath;
+  if (!adminUserId || !previousPath) {
+    return;
+  }
+
+  button.disabled = true;
+  try {
+    const { data, error } = await client
+      .from("chat_profiles")
+      .update({ profile_image_path: null })
+      .eq("user_id", adminUserId)
+      .select("user_id")
+      .maybeSingle();
+    if (error) {
+      throw new Error(`Could not remove profile photo: ${error.message}. Run the latest supabase/chat-migration.sql.`);
+    }
+    if (!data) {
+      throw new Error("The profile photo was not removed. Refresh the Admin session and try again.");
+    }
+
+    adminProfileImagePath = "";
+    document.getElementById("admin-profile-image-file").value = "";
+    button.hidden = true;
+    visitorProfilePhotoUrls.delete(previousPath);
+    resetAdminProfilePhotoPreview();
+    await setAdminProfileAvatar("");
+    const { error: removeError } = await client.storage
+      .from(chatProfileImageBucket)
+      .remove([previousPath]);
+    if (removeError) {
+      throw new Error(`Profile photo removed, but the image file could not be deleted: ${removeError.message}`);
+    }
+    setStatus(status, "Admin profile photo removed.");
+  } catch (error) {
+    console.error("Could not remove admin profile photo:", error);
+    setStatus(status, error.message, true);
+  } finally {
+    button.disabled = false;
+  }
 });
 
 document.getElementById("admin-visitor-profile-image-file").addEventListener("change", (event) => {
