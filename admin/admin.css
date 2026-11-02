@@ -178,32 +178,56 @@ input[type="file"]::file-selector-button:hover {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: rgba(255,255,255,0.02);
+  transition: border-color 180ms ease, background 180ms ease;
 }
 
 .admin-chatbot-controls .admin-help {
   margin: 0;
+  line-height: 1.55;
+}
+
+#admin-chatbot-toggle {
+  min-width: 190px;
+}
+
+#admin-chatbot-toggle[data-enabled="true"] {
+  border-color: color-mix(in srgb, #54cf8a 40%, var(--border));
+  color: #54cf8a;
 }
 
 .admin-chatbot-rules {
   display: grid;
   gap: 14px;
   margin-top: 12px;
-  padding: 16px;
+  padding: clamp(14px, 2.5vw, 22px);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.02);
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 100% 0, color-mix(in srgb, var(--primary) 8%, transparent), transparent 28rem),
+    color-mix(in srgb, var(--card) 88%, transparent);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
 }
 
 .admin-chatbot-rules h4 {
-  margin: 0 0 5px;
+  margin: 0 0 7px;
+  font-size: 1.08rem;
 }
 
 .admin-chatbot-rules > div:first-child .admin-help {
+  max-width: 78ch;
   margin: 0;
+  line-height: 1.65;
+}
+
+.admin-chatbot-rules > div:first-child .admin-chatbot-note {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .admin-chatbot-rules code {
   color: var(--primary);
+  font-size: 0.92em;
 }
 
 .admin-chatbot-rule-form,
@@ -215,6 +239,17 @@ input[type="file"]::file-selector-button:hover {
 .admin-chatbot-rule-form {
   grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.5fr) auto;
   align-items: end;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+}
+
+.admin-chatbot-form-heading {
+  grid-column: 1 / -1;
+  margin: 0 0 2px;
+  color: var(--text);
+  font-size: 0.9rem;
 }
 
 .admin-chatbot-rule-form > div,
@@ -259,16 +294,23 @@ input[type="file"]::file-selector-button:hover {
 }
 
 .admin-chatbot-rule-form-actions {
-  grid-template-columns: 90px auto;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
 }
 
 .admin-chatbot-rule-form-actions label {
-  grid-column: 1 / -1;
+  grid-column: auto;
+}
+
+.admin-chatbot-rule-form-actions small {
+  margin-top: -3px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 
 .admin-chatbot-rule-form-actions button {
-  grid-column: 1 / -1;
+  grid-column: auto;
   white-space: nowrap;
 }
 
@@ -280,10 +322,16 @@ input[type="file"]::file-selector-button:hover {
 .admin-chatbot-rule {
   grid-template-columns: minmax(130px, 0.7fr) minmax(200px, 1.5fr) 90px auto;
   align-items: end;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid var(--border);
-  border-radius: 11px;
-  background: rgba(0,0,0,0.08);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) 60%, transparent);
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.admin-chatbot-rule:hover {
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
 }
 
 .admin-chatbot-rule-enabled {
@@ -532,7 +580,8 @@ input[type="file"]::file-selector-button:hover {
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: rgba(255,255,255,0.02);
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.07);
 }
 
 .admin-chat-conversations {
@@ -541,6 +590,8 @@ input[type="file"]::file-selector-button:hover {
   gap: 8px;
   max-height: 580px;
   overflow-y: auto;
+  scrollbar-color: color-mix(in srgb, var(--primary) 38%, transparent) transparent;
+  scrollbar-width: thin;
 }
 
 .admin-chat-conversation {
@@ -554,6 +605,7 @@ input[type="file"]::file-selector-button:hover {
   color: var(--text);
   text-align: left;
   cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
 }
 
 .admin-chat-conversation span {
@@ -579,6 +631,10 @@ input[type="file"]::file-selector-button:hover {
 .admin-chat-conversation.active {
   border-color: var(--primary);
   background: var(--gradient-soft);
+}
+
+.admin-chat-conversation:hover {
+  transform: translateY(-1px);
 }
 
 .admin-chat-thread h3 {
@@ -608,6 +664,9 @@ input[type="file"]::file-selector-button:hover {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: rgba(0,0,0,0.12);
+  scroll-behavior: smooth;
+  scrollbar-color: color-mix(in srgb, var(--primary) 38%, transparent) transparent;
+  scrollbar-width: thin;
 }
 
 .admin-chat-message {
@@ -672,6 +731,13 @@ input[type="file"]::file-selector-button:hover {
   color: var(--text);
   font: inherit;
   resize: vertical;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.admin-chat-reply textarea:focus-visible {
+  border-color: var(--primary);
+  outline: 2px solid color-mix(in srgb, var(--primary) 18%, transparent);
+  outline-offset: 1px;
 }
 
 .admin-chat-file-button {
@@ -728,6 +794,28 @@ input[type="file"]::file-selector-button:hover {
 
 .admin-chat-file-name:empty {
   display: none;
+}
+
+.admin-section-nav a,
+.admin-chatbot-rule-actions button,
+.admin-chatbot-controls button,
+.admin-chat-reply button,
+.admin-chat-file-button,
+.admin-copy-group-id,
+.admin-delete-group {
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.admin-section-nav a:focus-visible,
+.admin-chatbot-rule-actions button:focus-visible,
+.admin-chatbot-controls button:focus-visible,
+.admin-chat-conversation:focus-visible,
+.admin-chat-reply button:focus-visible,
+.admin-chat-file-button:focus-visible,
+.admin-copy-group-id:focus-visible,
+.admin-delete-group:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
 }
 
 .sr-only {
@@ -1223,6 +1311,10 @@ input[type="file"]::file-selector-button:hover {
   .admin-chatbot-rule {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
+
+  .admin-chatbot-form-heading {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 520px) {
@@ -1275,15 +1367,28 @@ input[type="file"]::file-selector-button:hover {
     grid-template-columns: 1fr;
   }
 
-  .admin-chatbot-rule-form-actions {
-    grid-template-columns: 90px minmax(0, 1fr);
-  }
-
-  .admin-chatbot-rule-form-actions label {
-    grid-column: 1 / -1;
-  }
-
-  .admin-chatbot-rule-form-actions button {
+  .admin-chatbot-form-heading {
     grid-column: auto;
+  }
+
+  .admin-chatbot-rule-form-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-chat-conversation,
+  .admin-chatbot-rule,
+  .admin-chat-messages,
+  .admin-section-nav a,
+  .admin-chatbot-rule-actions button,
+  .admin-chatbot-controls button,
+  .admin-chat-reply button,
+  .admin-chat-file-button,
+  .admin-copy-group-id,
+  .admin-delete-group {
+    animation: none;
+    scroll-behavior: auto;
+    transition: none;
   }
 }

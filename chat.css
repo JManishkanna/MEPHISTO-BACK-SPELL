@@ -46,6 +46,7 @@
   border-radius: 28px;
   background: var(--card);
   box-shadow: var(--shadow);
+  animation: chat-panel-in 320ms ease both;
 }
 
 .chat-auth-card[hidden],
@@ -93,6 +94,18 @@
   min-height: min(860px, calc(100vh - 36px));
   min-height: min(860px, calc(100dvh - 36px));
   overflow: hidden;
+  animation: chat-panel-in 280ms ease both;
+}
+
+@keyframes chat-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .chat-help,
@@ -132,6 +145,15 @@
 
 .chat-form input {
   margin-bottom: 6px;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.chat-form input:focus-visible,
+.chat-join-group-form input:focus-visible,
+.chat-profile-settings input:focus-visible {
+  border-color: var(--primary);
+  outline: 2px solid color-mix(in srgb, var(--primary) 18%, transparent);
+  outline-offset: 1px;
 }
 
 .chat-auth-switch {
@@ -328,6 +350,19 @@
   color: var(--primary);
 }
 
+.chat-icon-button:focus-visible,
+.chat-back-button:focus-visible,
+.chat-text-button:focus-visible,
+.chat-room-button:focus-visible,
+.chat-join-group-details summary:focus-visible,
+.chat-profile-settings summary:focus-visible,
+.chat-send-button:focus-visible,
+.chat-clear-attachment:focus-visible,
+.chat-attachment-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
 .chat-room-layout {
   display: grid;
   grid-template-columns: minmax(270px, 0.75fr) minmax(0, 1.7fr);
@@ -341,6 +376,7 @@
   min-width: 0;
   padding: 24px 16px 18px;
   border-right: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 26%, transparent);
 }
 
 .chat-sidebar-heading {
@@ -490,6 +526,12 @@
   gap: 3px;
 }
 
+.chat-group-list > .chat-help {
+  margin: 3px 8px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
 .chat-join-group-details {
   margin: 14px 4px 0;
 }
@@ -556,6 +598,7 @@
   gap: 12px;
   min-height: 78px;
   border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 62%, transparent);
 }
 
 .chat-back-button {
@@ -673,6 +716,7 @@
   scroll-behavior: smooth;
   scrollbar-color: color-mix(in srgb, var(--primary) 38%, transparent) transparent;
   scrollbar-width: thin;
+  overscroll-behavior: contain;
 }
 
 .chat-message {
@@ -718,6 +762,10 @@
 .chat-empty {
   align-self: center;
   margin: auto;
+  padding: 14px 18px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) 38%, transparent);
   color: var(--muted);
   text-align: center;
 }
@@ -741,6 +789,10 @@
 .chat-message-form textarea:focus {
   border-color: var(--primary);
   outline: 2px solid color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.chat-message-form textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 82%, transparent);
 }
 
 .chat-message-actions {
@@ -868,6 +920,10 @@
 .chat-send-button:hover {
   transform: translateY(-1px);
   filter: brightness(1.1);
+}
+
+.chat-send-button:active {
+  transform: scale(0.96);
 }
 
 .chat-message-form > .chat-help {
@@ -1065,9 +1121,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .chat-auth-card,
+  .chat-session,
   .chat-room-button,
   .chat-send-button,
   .chat-messages {
+    animation: none;
     scroll-behavior: auto;
     transition: none;
   }

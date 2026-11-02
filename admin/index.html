@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>Portfolio Admin | ManishKannaJ.</title>
     <link rel="stylesheet" href="../styles.css" />
-    <link rel="stylesheet" href="admin.css?v=14" />
+    <link rel="stylesheet" href="admin.css?v=15" />
   </head>
   <body data-theme="demon">
     <main class="admin-shell">
@@ -347,9 +347,11 @@
         <section class="admin-chatbot-rules" aria-labelledby="admin-chatbot-rules-heading">
           <div>
             <h4 id="admin-chatbot-rules-heading">Automatic reply rules</h4>
-            <p class="admin-help">Add a word or phrase and the response to send. Use <code>*</code> for the fallback and edit <code>__greeting__</code> to customize the welcome message. Higher priority rules are checked first.</p>
+            <p class="admin-help">When automatic replies are on, new conversations get the welcome reply. Later messages are matched against these keywords. Higher priority numbers win; longer phrases win ties. The <code>*</code> rule is used when nothing else matches.</p>
+            <p class="admin-help admin-chatbot-note">The saved <code>__greeting__</code> and <code>*</code> rules are reserved: you can edit their replies, but not delete them.</p>
           </div>
           <form id="admin-chatbot-rule-form" class="admin-chatbot-rule-form">
+            <h5 class="admin-chatbot-form-heading">Add a reply rule</h5>
             <div>
               <label for="admin-chatbot-keyword">Keyword or phrase</label>
               <input id="admin-chatbot-keyword" name="keyword" maxlength="80" placeholder="e.g. pricing" required />
@@ -359,8 +361,9 @@
               <textarea id="admin-chatbot-reply" name="reply_text" rows="3" maxlength="2000" placeholder="Write the response visitors should receive" required></textarea>
             </div>
             <div class="admin-chatbot-rule-form-actions">
-              <label for="admin-chatbot-priority">Priority</label>
-              <input id="admin-chatbot-priority" name="priority" type="number" value="0" />
+              <label for="admin-chatbot-priority">Priority (higher wins)</label>
+              <input id="admin-chatbot-priority" name="priority" type="number" step="1" value="0" aria-describedby="admin-chatbot-priority-help" />
+              <small id="admin-chatbot-priority-help">Used when multiple rules match.</small>
               <button class="btn btn-primary" type="submit">Add reply rule</button>
             </div>
           </form>
