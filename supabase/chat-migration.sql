@@ -14,6 +14,41 @@ create table if not exists public.chat_messages (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.chat_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  display_name text not null check (char_length(btrim(display_name)) between 1 and 40)
+);
+
+alter table public.chat_profiles enable row level security;
+
+revoke all on public.chat_profiles from public, anon, authenticated;
+grant select, insert, update on public.chat_profiles to authenticated;
+
+drop policy if exists "Signed-in users can read chat display names" on public.chat_profiles;
+create policy "Signed-in users can read chat display names"
+on public.chat_profiles for select to authenticated
+using ((select auth.uid()) is not null);
+
+drop policy if exists "Visitors can create their own chat profile" on public.chat_profiles;
+create policy "Visitors can create their own chat profile"
+on public.chat_profiles for insert to authenticated
+with check (
+  user_id = (select auth.uid())
+  and not (select public.is_portfolio_admin())
+);
+
+drop policy if exists "Visitors can update their own chat profile" on public.chat_profiles;
+create policy "Visitors can update their own chat profile"
+on public.chat_profiles for update to authenticated
+using (
+  user_id = (select auth.uid())
+  and not (select public.is_portfolio_admin())
+)
+with check (
+  user_id = (select auth.uid())
+  and not (select public.is_portfolio_admin())
+);
+
 alter table public.chat_messages
   add column if not exists attachment_path text,
   add column if not exists attachment_name text;

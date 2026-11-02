@@ -17,6 +17,7 @@
 - Group messages use `public.chat_group_messages` with `id, group_id, sender_id, body, attachment_path, attachment_name, created_at`. Existing private messages remain in `public.chat_messages`; optional attachment columns let the admin inbox send and render private-chat attachments too.
 - `chat-attachments` is a private Storage bucket limited to 10 MB per object and the supported image, PDF, text, CSV, Word, and Excel MIME types. Use paths of the form `<conversation-or-group UUID>/<authenticated sender UUID>/<random>-<sanitized filename>`. Access is limited by the corresponding visitor conversation, group membership, or the portfolio-admin override; use authenticated Storage downloads or signed URLs, never public URLs.
 - The visitor client should show only joined rooms returned by the membership query above. It may join a room when the visitor enters a valid room UUID, then use the same private-bucket path convention for room uploads; RLS is the access boundary, not secrecy of the UUID alone.
+- The migration also creates `public.chat_profiles` for visitor display names. Visitors can read names while signed in and can insert or update only their own profile; the table contains no email addresses. Rerun the chat migration after deploying the display-name UI.
 
 For an existing project that already ran `schema.sql`, run [`social-links-migration.sql`](./social-links-migration.sql) in the Supabase SQL Editor to enable social-link management. In Admin, add, edit, reorder, or delete profile links; the public pages read the saved list from Supabase.
 

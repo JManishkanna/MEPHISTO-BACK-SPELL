@@ -43,10 +43,12 @@ let selectedCatalogIds = { skill: "", tool: "" };
 let chatConversations = [];
 let selectedChatConversationId = "";
 let latestAdminChatMessageId = "";
+let latestAdminChatProfileSignature = "";
 let chatInboxTimer = null;
 let chatGroups = [];
 let selectedChatGroupId = "";
 let latestAdminGroupMessageId = "";
+let latestAdminGroupProfileSignature = "";
 
 const chatAttachmentBucket = "chat-attachments";
 const chatAttachmentMaxSize = 10 * 1024 * 1024;
@@ -87,7 +89,22 @@ function setStatus(element, message, isError = false) {
   element.dataset.error = String(isError);
 }
 
-async function renderChatMessages(messages, currentUserId, conversationId) {
+async function loadChatProfiles(userIds) {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  if (!ids.length) {
+    return new Map();
+  }
+  const { data, error } = await client
+    .from("chat_profiles")
+    .select("user_id, display_name")
+    .in("user_id", ids);
+  if (error) {
+    throw error;
+  }
+  return new Map((data || []).map((profile) => [profile.user_id, profile.display_name]));
+}
+
+async function renderChatMessages(messages, currentUserId, conversationId, visitorDisplayName) {
   const container = document.getElementById("admin-chat-messages");
   if (!messages.length) {
     const empty = previewElement("p", "admin-chat-empty", "No messages in this conversation yet.");
@@ -97,15 +114,19 @@ async function renderChatMessages(messages, currentUserId, conversationId) {
   }
 
   const newestId = messages[messages.length - 1].id;
-  if (newestId === latestAdminChatMessageId && container.childElementCount) {
+  const profileSignature = `${conversationId}:${visitorDisplayName}`;
+  if (newestId === latestAdminChatMessageId
+    && profileSignature === latestAdminChatProfileSignature
+    && container.childElementCount) {
     return;
   }
   latestAdminChatMessageId = newestId;
+  latestAdminChatProfileSignature = profileSignature;
 
   const fragment = document.createDocumentFragment();
   for (const message of messages) {
     const item = previewElement("article", `admin-chat-message${message.sender_id === currentUserId ? " is-own" : ""}`);
-    const author = previewElement("strong", "", message.sender_id === currentUserId ? "You" : "Visitor");
+    const author = previewElement("strong", "", message.sender_id === currentUserId ? "You" : visitorDisplayName);
     item.append(author);
     if (message.body) {
       item.append(previewElement("p", "", message.body));
@@ -160,7 +181,7 @@ async function loadSelectedChatMessages() {
     return;
   }
 
-  heading.textContent = conversation.visitor_email;
+  heading.textContent = `${conversation.display_name} (${conversation.visitor_email})`;
   form.hidden = false;
   const conversationId = conversation.id;
   const { data, error } = await client
@@ -176,7 +197,7 @@ async function loadSelectedChatMessages() {
   if (selectedChatConversationId !== conversationId) {
     return;
   }
-  await renderChatMessages((data || []).reverse(), userData?.user?.id, conversationId);
+  await renderChatMessages((data || []).reverse(), userData?.user?.id, conversationId, conversation.display_name);
 }
 
 async function loadChatInbox() {
@@ -192,6 +213,17 @@ async function loadChatInbox() {
     return;
   }
   chatConversations = data || [];
+  try {
+    const profileNames = await loadChatProfiles(chatConversations.map((conversation) => conversation.visitor_id));
+    chatConversations.forEach((conversation) => {
+      conversation.display_name = profileNames.get(conversation.visitor_id)
+        || conversation.visitor_email.split("@")[0]
+        || "Visitor";
+    });
+  } catch (profileError) {
+    setStatus(status, `Could not load visitor display names: ${profileError.message}`, true);
+    return;
+  }
   if (!chatConversations.length) {
     selectedChatConversationId = "";
   } else if (!chatConversations.some((conversation) => conversation.id === selectedChatConversationId)) {
@@ -223,9 +255,10 @@ async function loadChatInbox() {
     const button = previewElement("button", "admin-chat-conversation");
     button.type = "button";
     button.classList.toggle("active", conversation.id === selectedChatConversationId);
-    const email = previewElement("strong", "", conversation.visitor_email);
+    const name = previewElement("strong", "", conversation.display_name);
+    const email = previewElement("span", "", conversation.visitor_email);
     const preview = previewElement("span", "", latestMessages.get(conversation.id)?.body || latestMessages.get(conversation.id)?.attachment_name || "No messages yet");
-    button.append(email, preview);
+    button.append(name, email, preview);
     button.addEventListener("click", async () => {
       selectedChatConversationId = conversation.id;
       latestAdminChatMessageId = "";
@@ -342,16 +375,24 @@ async function loadSelectedChatGroup(group) {
     setStatus(document.getElementById("chat-group-status"), `Could not load room members: ${membersError.message}`, true);
     return;
   }
+  let memberNames;
+  try {
+    memberNames = await loadChatProfiles((members || []).map((member) => member.member_id));
+  } catch (profileError) {
+    setStatus(document.getElementById("chat-group-status"), `Could not load member display names: ${profileError.message}`, true);
+    return;
+  }
   membersContainer.replaceChildren();
   if (!members?.length) {
     membersContainer.append(previewElement("p", "admin-chat-empty", "No members have joined yet."));
   } else {
     members.forEach((member) => {
       const row = previewElement("div", "admin-group-member");
-      row.append(previewElement("span", "", member.member_id));
+      const memberName = memberNames.get(member.member_id) || "Visitor";
+      row.append(previewElement("span", "", memberName));
       const removeButton = previewElement("button", "", "Remove");
       removeButton.type = "button";
-      removeButton.setAttribute("aria-label", `Remove member ${member.member_id}`);
+      removeButton.setAttribute("aria-label", `Remove member ${memberName}`);
       removeButton.addEventListener("click", async () => {
         const { error } = await client
           .from("chat_group_members")
@@ -383,26 +424,43 @@ async function loadSelectedChatGroup(group) {
   if (selectedChatGroupId !== group.id) {
     return;
   }
-  await renderChatGroupMessages((messages || []).reverse(), userData?.user?.id, group.id);
+  const orderedMessages = (messages || []).reverse();
+  let profileNames = memberNames;
+  try {
+    const messageNames = await loadChatProfiles(orderedMessages.map((message) => message.sender_id));
+    profileNames = new Map([...memberNames, ...messageNames]);
+  } catch (profileError) {
+    setStatus(document.getElementById("chat-group-status"), `Could not load message sender names: ${profileError.message}`, true);
+    return;
+  }
+  if (selectedChatGroupId !== group.id) {
+    return;
+  }
+  await renderChatGroupMessages(orderedMessages, userData?.user?.id, group.id, profileNames);
 }
 
-async function renderChatGroupMessages(messages, currentUserId, groupId) {
+async function renderChatGroupMessages(messages, currentUserId, groupId, profileNames) {
   const container = document.getElementById("admin-group-messages");
   if (!messages.length) {
     container.replaceChildren(previewElement("p", "admin-chat-empty", "No messages in this room yet."));
     latestAdminGroupMessageId = "";
+    latestAdminGroupProfileSignature = "";
     return;
   }
   const newestId = messages[messages.length - 1].id;
-  if (newestId === latestAdminGroupMessageId && container.childElementCount) {
+  const profileSignature = `${groupId}|${[...profileNames.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([id, name]) => `${id}:${name}`).join("|")}`;
+  if (newestId === latestAdminGroupMessageId
+    && profileSignature === latestAdminGroupProfileSignature
+    && container.childElementCount) {
     return;
   }
   latestAdminGroupMessageId = newestId;
+  latestAdminGroupProfileSignature = profileSignature;
 
   const fragment = document.createDocumentFragment();
   for (const message of messages) {
     const item = previewElement("article", `admin-chat-message${message.sender_id === currentUserId ? " is-own" : ""}`);
-    item.append(previewElement("strong", "", message.sender_id === currentUserId ? "You" : "Member"));
+    item.append(previewElement("strong", "", message.sender_id === currentUserId ? "You" : (profileNames.get(message.sender_id) || "Member")));
     if (message.body) {
       item.append(previewElement("p", "", message.body));
     }

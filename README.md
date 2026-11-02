@@ -8,6 +8,7 @@ Personal portfolio website for a Java full-stack developer, built with HTML, CSS
 - Theme selector and mobile navigation.
 - Projects and portfolio content managed through a Supabase-backed Admin dashboard.
 - Visitor email/password sign-up and sign-in for chat.
+- Visitors can choose a 1–40 character chat display name; it is shown to other signed-in chat users.
 - Private visitor-to-admin conversations and five seeded group rooms: General, Introductions, Projects, Questions, and Resources.
 - Admin-created group rooms with UUID invite IDs, member management, and group messages.
 - Private file sharing in direct and group conversations. Supported images and common documents are limited to 10 MB per file.
@@ -24,9 +25,10 @@ This is a static website; there is no package installation or build step. Serve 
 1. A visitor opens `/chat.html`, signs in, or creates an email/password account.
 2. Supabase Auth issues the visitor's session. When email confirmation is enabled, the visitor confirms the email before signing in.
 3. The chat page opens the visitor's private conversation and loads the group rooms that visitor has joined.
-4. To join a group, the visitor enters an invite UUID supplied by the admin. Supabase validates the UUID and adds the signed-in visitor as a member.
-5. Visitors and admins send text or optionally attach a supported photo/document (up to 10 MB). The page polls periodically for new messages.
-6. The allowlisted admin opens `/admin/`, selects a private conversation or group, replies, creates additional rooms, copies invite IDs, and removes group members.
+4. Visitors can edit their display name from the chat header. The name is stored in `chat_profiles` and displayed in messages and the Admin inbox; their login email remains private to the account and Admin inbox.
+5. To join a group, the visitor enters an invite UUID supplied by the admin. Supabase validates the UUID and adds the signed-in visitor as a member.
+6. Visitors and admins send text or optionally attach a supported photo/document (up to 10 MB). The page polls periodically for new messages.
+7. The allowlisted admin opens `/admin/`, selects a private conversation or group, replies, creates additional rooms, copies invite IDs, and removes group members.
 
 ### Portfolio content
 
@@ -53,6 +55,7 @@ flowchart LR
   Portfolio["Public portfolio tables<br/>projects, settings, skills/tools, social links"]
   DMs["Private conversations<br/>chat_conversations + chat_messages"]
   Groups["Group rooms<br/>chat_groups + chat_group_members<br/>chat_group_messages"]
+  Profiles["Chat display names<br/>chat_profiles"]
   Storage["Private chat-attachments bucket<br/>signed downloads, 10 MB/file"]
   Netlify["Netlify Forms"]
 
@@ -67,6 +70,7 @@ flowchart LR
   RLS --> Portfolio
   RLS --> DMs
   RLS --> Groups
+  RLS --> Profiles
   ChatUI -->|"upload / signed URL"| Storage
   AdminUI -->|"upload / signed URL"| Storage
   Visitor -->|"contact submission"| Netlify
@@ -86,7 +90,7 @@ flowchart LR
 
 1. Create a Supabase project.
 2. Run [`supabase/schema.sql`](./supabase/schema.sql) in the Supabase SQL Editor.
-3. Run [`supabase/chat-migration.sql`](./supabase/chat-migration.sql). It creates the chat tables and policies, seeds five group rooms, and creates a private attachment bucket. It can be rerun to apply updates.
+3. Run [`supabase/chat-migration.sql`](./supabase/chat-migration.sql). It creates the chat tables and policies, seeds five group rooms, creates the private attachment bucket, and adds visitor display-name profiles. Rerun it to apply updates to an existing project.
 4. Create your admin account in Supabase Auth and add its email to `public.portfolio_admins` as described at the end of `schema.sql`.
 5. Enable email/password sign-up for visitors. If email confirmation is on, configure the Supabase Auth site URL and allow the deployed `/chat.html` URL as a redirect. Supabase's default email service may rate-limit sign-ups; configure custom SMTP for production.
 6. Put your project URL and **public anon/publishable key** in [`supabase-config.js`](./supabase-config.js). Never put a Supabase service-role or secret key in browser code.

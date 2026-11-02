@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="chat.css?v=4" />
+    <link rel="stylesheet" href="chat.css?v=6" />
   </head>
   <body data-page="chat" data-theme="demon">
     <div class="page-shell">
@@ -91,7 +91,7 @@
               <button id="chat-resend-confirmation" class="chat-text-button" type="button" hidden>Resend confirmation email</button>
             </section>
 
-            <section id="chat-session" class="chat-card chat-session" aria-labelledby="chat-session-heading" hidden>
+            <section id="chat-session" class="chat-card chat-session" aria-label="Chat session" hidden>
               <div class="chat-app-header">
                 <a class="chat-app-brand" href="index.html" aria-label="Back to portfolio">
                   <span class="brand-mark small"><i class="fab fa-java" aria-hidden="true"></i></span>
@@ -99,8 +99,19 @@
                 </a>
                 <div class="chat-account">
                   <span class="chat-account-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
-                  <span id="chat-user-email"></span>
+                  <span class="chat-account-identity">
+                    <strong id="chat-user-display-name"></strong>
+                    <small id="chat-user-email"></small>
+                  </span>
                 </div>
+                <details class="chat-profile-settings">
+                  <summary aria-label="Change your display name" title="Change your display name"><i class="fas fa-pen" aria-hidden="true"></i><span>Edit name</span></summary>
+                  <form id="chat-profile-form">
+                    <label for="chat-profile-display-name">Display name</label>
+                    <input id="chat-profile-display-name" name="display_name" type="text" maxlength="40" autocomplete="nickname" required />
+                    <button class="btn btn-primary" type="submit">Save name</button>
+                  </form>
+                </details>
                 <button id="chat-signout" class="chat-icon-button" type="button" aria-label="Sign out" title="Sign out"><i class="fas fa-arrow-right-from-bracket" aria-hidden="true"></i></button>
               </div>
               <div class="chat-room-layout">
@@ -137,6 +148,9 @@
                 </aside>
                 <div class="chat-thread" aria-label="Chat conversation">
                   <div class="chat-thread-header">
+                    <button id="chat-back-to-list" class="chat-back-button" type="button" aria-label="Back to conversations">
+                      <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    </button>
                     <span id="chat-thread-avatar" class="chat-room-avatar chat-direct-avatar" aria-hidden="true"><i class="fas fa-user"></i></span>
                     <div class="chat-thread-title">
                       <h2 id="chat-thread-heading">Manish</h2>
@@ -179,6 +193,6 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
-    <script src="chat.js?v=4"></script>
+    <script src="chat.js?v=6"></script>
   </body>
 </html>

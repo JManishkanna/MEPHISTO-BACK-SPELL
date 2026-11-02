@@ -17,6 +17,9 @@
   const threadHeading = document.getElementById("chat-thread-heading");
   const threadAvatar = document.getElementById("chat-thread-avatar");
   const chatPresence = document.getElementById("chat-presence");
+  const profileForm = document.getElementById("chat-profile-form");
+  const profileNameInput = document.getElementById("chat-profile-display-name");
+  const profileSettings = document.querySelector(".chat-profile-settings");
   const switchButton = document.getElementById("chat-auth-switch");
   const switchText = document.getElementById("chat-auth-switch-text");
   const resendConfirmationButton = document.getElementById("chat-resend-confirmation");
@@ -27,6 +30,7 @@
   let activeGroup = null;
   let activeChatType = "direct";
   let latestMessageId = "";
+  let latestProfileSignature = "";
   let pollTimer = null;
   let groupsTimer = null;
   let isLoadingMessages = false;
@@ -94,11 +98,15 @@
     setStatus(authStatus, "");
   }
 
-  function showSession(user) {
+  function showSession(user, displayName) {
     currentUser = user;
     authPanel.hidden = true;
     sessionPanel.hidden = false;
+    document.body.classList.add("chat-active");
+    sessionPanel.classList.remove("chat-showing-list");
+    document.getElementById("chat-user-display-name").textContent = displayName;
     document.getElementById("chat-user-email").textContent = user.email || "";
+    profileNameInput.value = displayName;
   }
 
   function showAuth(message = "", isError = false) {
@@ -109,6 +117,8 @@
     window.clearInterval(pollTimer);
     window.clearInterval(groupsTimer);
     sessionPanel.hidden = true;
+    sessionPanel.classList.remove("chat-showing-list");
+    document.body.classList.remove("chat-active");
     authPanel.hidden = false;
     messageList.replaceChildren();
     if (message) {
@@ -127,6 +137,41 @@
     }
     if (existing) {
       return existing.id;
+    }
+
+    async function getOrCreateDisplayName(user) {
+      const { data: existing, error: lookupError } = await client
+        .from("chat_profiles")
+        .select("display_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (lookupError) {
+        throw lookupError;
+      }
+      if (existing?.display_name) {
+        return existing.display_name;
+      }
+
+      const fallbackName = (user.user_metadata?.display_name
+        || user.email?.split("@")[0]
+        || "Visitor").slice(0, 40).trim() || "Visitor";
+      const { error: insertError } = await client
+        .from("chat_profiles")
+        .insert({ user_id: user.id, display_name: fallbackName });
+      if (!insertError) {
+        return fallbackName;
+      }
+      if (insertError.code === "23505") {
+        const { data: racedProfile, error: racedLookupError } = await client
+          .from("chat_profiles")
+          .select("display_name")
+          .eq("user_id", user.id)
+          .single();
+        if (!racedLookupError) {
+          return racedProfile.display_name;
+        }
+      }
+      throw insertError;
     }
 
     const { data: created, error: insertError } = await client
@@ -219,6 +264,7 @@
   async function selectGroup(group) {
     activeChatType = "group";
     activeGroup = group;
+    sessionPanel.classList.remove("chat-showing-list");
     latestMessageId = "";
     setThreadHeader(group.name, true);
     directButton.classList.remove("active");
@@ -229,6 +275,7 @@
   function selectDirectChat() {
     activeChatType = "direct";
     activeGroup = null;
+    sessionPanel.classList.remove("chat-showing-list");
     latestMessageId = "";
     setThreadHeader("Manish");
     directButton.classList.add("active");
@@ -236,7 +283,7 @@
     loadMessages();
   }
 
-  async function renderMessages(messages, chatType, chatId) {
+  async function renderMessages(messages, chatType, chatId, profileNames) {
     const isCurrentChat = () => chatType === activeChatType
       && chatId === (activeChatType === "group" ? activeGroup?.id : conversationId);
     if (!messages.length) {
@@ -248,11 +295,18 @@
       empty.textContent = "Send a message to start the conversation.";
       messageList.replaceChildren(empty);
       latestMessageId = "";
+      latestProfileSignature = "";
       return;
     }
 
     const newestId = messages[messages.length - 1].id;
-    if (newestId === latestMessageId && messageList.childElementCount) {
+    const profileSignature = [...new Set(messages.map((message) => message.sender_id))]
+      .sort()
+      .map((userId) => `${userId}:${profileNames.get(userId) || ""}`)
+      .join("|");
+    if (newestId === latestMessageId
+      && profileSignature === latestProfileSignature
+      && messageList.childElementCount) {
       return;
     }
 
@@ -263,7 +317,7 @@
       const author = document.createElement("strong");
       author.textContent = message.sender_id === currentUser.id
         ? "You"
-        : (chatType === "direct" ? "Manish" : "Group member");
+        : (chatType === "direct" ? "Manish" : (profileNames.get(message.sender_id) || "Group member"));
       if (message.body) {
         const body = document.createElement("p");
         body.textContent = message.body;
@@ -307,6 +361,7 @@
       return;
     }
     latestMessageId = newestId;
+    latestProfileSignature = profileSignature;
     messageList.replaceChildren(fragment);
     messageList.scrollTop = messageList.scrollHeight;
   }
@@ -334,7 +389,20 @@
         || requestChatId !== (activeChatType === "group" ? activeGroup?.id : conversationId)) {
         return;
       }
-      await renderMessages((data || []).reverse(), requestChatType, requestChatId);
+      const messages = (data || []).reverse();
+      const profileNames = new Map();
+      if (requestChatType === "group" && messages.length) {
+        const senderIds = [...new Set(messages.map((message) => message.sender_id))];
+        const { data: profiles, error: profileError } = await client
+          .from("chat_profiles")
+          .select("user_id, display_name")
+          .in("user_id", senderIds);
+        if (profileError) {
+          throw profileError;
+        }
+        (profiles || []).forEach((profile) => profileNames.set(profile.user_id, profile.display_name));
+      }
+      await renderMessages(messages, requestChatType, requestChatId, profileNames);
     } catch (error) {
       console.error(error);
       setStatus(sessionStatus, `Could not load messages: ${error.message}`, true);
@@ -353,7 +421,8 @@
       return;
     }
 
-    showSession(user);
+    const displayName = await getOrCreateDisplayName(user);
+    showSession(user, displayName);
     setStatus(sessionStatus, "Opening your private conversation…");
     conversationId = await getConversation(user);
     activeChatType = "direct";
@@ -503,7 +572,43 @@
   });
 
   document.getElementById("chat-direct-button").addEventListener("click", selectDirectChat);
+  document.getElementById("chat-back-to-list").addEventListener("click", () => {
+    sessionPanel.classList.add("chat-showing-list");
+  });
   searchInput.addEventListener("input", filterConversations);
+
+  profileForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!currentUser) {
+      return;
+    }
+    const displayName = profileNameInput.value.trim().replace(/\s+/g, " ");
+    if (displayName.length < 1 || displayName.length > 40) {
+      setStatus(sessionStatus, "Display names must be between 1 and 40 characters.", true);
+      return;
+    }
+
+    const button = profileForm.querySelector("button[type='submit']");
+    button.disabled = true;
+    try {
+      const { error } = await client
+        .from("chat_profiles")
+        .upsert({ user_id: currentUser.id, display_name: displayName }, { onConflict: "user_id" });
+      if (error) {
+        throw error;
+      }
+
+      document.getElementById("chat-user-display-name").textContent = displayName;
+      profileSettings.open = false;
+      setStatus(sessionStatus, "Display name updated.");
+      await loadMessages();
+    } catch (error) {
+      console.error(error);
+      setStatus(sessionStatus, `Could not update your display name: ${error.message}`, true);
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   document.getElementById("chat-message").addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
