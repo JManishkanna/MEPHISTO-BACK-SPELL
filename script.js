@@ -7,7 +7,7 @@ const mobileMenu = document.querySelector(".mobile-menu");
 const scrollTopBtn = document.getElementById("scrollTopBtn");
 const navLinks = document.querySelectorAll(".nav-link");
 
-const validThemes = new Set(["classic", "demon", "light", "ocean", "forest", "violet", "gold", "rose"]);
+const validThemes = new Set(["classic", "demon", "light", "ocean", "forest", "violet", "gold", "rose", "glass", "serene"]);
 const savedTheme = localStorage.getItem("siteTheme") || localStorage.getItem("theme");
 const initialTheme = savedTheme === "light" ? "light" : savedTheme === "dark" || !validThemes.has(savedTheme) ? "demon" : savedTheme;
 
