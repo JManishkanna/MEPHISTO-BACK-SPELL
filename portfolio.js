@@ -525,6 +525,30 @@
     });
   }
 
+  const contributionEventTypes = new Set([
+    "PushEvent",
+    "PullRequestEvent",
+    "IssuesEvent",
+    "IssueCommentEvent",
+    "CreateEvent",
+    "ForkEvent",
+    "WatchEvent"
+  ]);
+
+  // GitHub only retains about 90 days of public events for unauthenticated requests.
+  function countContributions(events) {
+    const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+    return events.reduce((total, event) => {
+      if (Date.parse(event.created_at) < cutoff || !contributionEventTypes.has(event.type)) {
+        return total;
+      }
+      if (event.type === "PushEvent") {
+        return total + (Number(event.payload?.size) || event.payload?.commits?.length || 0);
+      }
+      return total + 1;
+    }, 0);
+  }
+
   function setStat(name, value) {
     const stat = document.querySelector(`[data-github-stat="${name}"] [data-stat-value]`);
     if (stat) {
@@ -556,6 +580,7 @@
       const recentEvents = events.filter((event) => Date.parse(event.created_at) >= cutoff);
       setStat("repositories", profile.public_repos);
       setStat("events", recentEvents.length);
+      setStat("contributions", countContributions(events));
       renderActivity(events);
 
       const repositories = projectData.filter((project) => project.githubOwner && project.githubRepo);

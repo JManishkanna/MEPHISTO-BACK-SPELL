@@ -1265,6 +1265,26 @@ button {
   color: #ff8995;
 }
 
+.contribution-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.contribution-value {
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
 .project-preview {
   position: relative;
   margin: -26px -20px 20px;
