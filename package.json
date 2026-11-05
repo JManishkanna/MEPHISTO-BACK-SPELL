@@ -1,0 +1,23 @@
+{
+  "name": "mephisto-portfolio",
+  "version": "1.0.0",
+  "description": "ManishKannaJ Portfolio - Java Full Stack Developer",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JManishkanna/MEPHISTO-BACK-SPELL.git"
+  },
+  "keywords": [
+    "portfolio",
+    "java",
+    "fullstack"
+  ],
+  "author": "ManishKannaJ",
+  "license": "MIT",
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0"
+  }
+}
