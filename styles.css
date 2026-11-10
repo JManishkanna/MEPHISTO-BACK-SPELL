@@ -73,6 +73,25 @@ body[data-theme="demon"] {
   --glow-three: rgba(255, 77, 24, 0.12);
 }
 
+body[data-theme="blood"] {
+  --bg: #100001;
+  --bg-soft: #240204;
+  --panel: rgba(31, 1, 3, 0.94);
+  --panel-strong: rgba(42, 1, 4, 0.98);
+  --card: rgba(51, 2, 5, 0.86);
+  --text: #fff8d2;
+  --muted: #d8cfa0;
+  --primary: #dc0208;
+  --primary-strong: #a80005;
+  --secondary: #ffef93;
+  --border: rgba(255, 239, 147, 0.2);
+  --gradient: linear-gradient(135deg, #a80005, #dc0208 55%, #ffef93);
+  --gradient-soft: linear-gradient(135deg, rgba(220, 2, 8, 0.22), rgba(255, 239, 147, 0.12));
+  --glow-one: rgba(220, 2, 8, 0.3);
+  --glow-two: rgba(168, 0, 5, 0.3);
+  --glow-three: rgba(255, 239, 147, 0.1);
+}
+
 body[data-theme="light"] {
   --glow-one: rgba(217, 35, 54, 0.1);
   --glow-two: rgba(240, 82, 98, 0.08);
